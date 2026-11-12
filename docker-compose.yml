@@ -1,0 +1,117 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports: ["5672:5672", "15672:15672"]
+
+  auth-db:
+    image: postgres:16
+    environment: {POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: auth}
+  user-db:
+    image: postgres:16
+    environment: {POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: users}
+  product-db:
+    image: postgres:16
+    environment: {POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: products}
+  order-db:
+    image: postgres:16
+    environment: {POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: orders}
+  payment-db:
+    image: postgres:16
+    environment: {POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: payments}
+  notification-db:
+    image: mongo:7
+  cart-db:
+    image: redis:7
+
+  auth-service:
+    build: ./services/auth-service
+    environment:
+      DATABASE_URL: postgresql://app:app@auth-db:5432/auth
+      JWT_SECRET: ${JWT_SECRET:-super-secret-key-change-me}
+    depends_on: [auth-db]
+
+  product-service:
+    build: ./services/product-service
+    environment:
+      DATABASE_URL: postgresql://app:app@product-db:5432/products
+    depends_on: [product-db]
+
+  user-service:
+    build: ./services/user-service
+    environment:
+      DATABASE_URL: postgresql://app:app@user-db:5432/users
+    depends_on: [user-db]
+
+  cart-service:
+    build: ./services/cart-service
+    environment:
+      REDIS_URL: redis://cart-db:6379/0
+      PRODUCT_SERVICE_URL: http://product-service:8000
+    depends_on: [cart-db, product-service]
+
+  order-service:
+    build: ./services/order-service
+    environment:
+      DATABASE_URL: postgresql://app:app@order-db:5432/orders
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      CART_SERVICE_URL: http://cart-service:8000
+      PRODUCT_SERVICE_URL: http://product-service:8000
+    depends_on: [order-db, rabbitmq, cart-service, product-service]
+
+  payment-service:
+    build: ./services/payment-service
+    environment:
+      DATABASE_URL: postgresql://app:app@payment-db:5432/payments
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    depends_on: [payment-db, rabbitmq]
+
+  notification-service:
+    build: ./services/notification-service
+    environment:
+      MONGODB_URL: mongodb://notification-db:27017
+      MONGODB_DATABASE: notifications
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+    depends_on: [notification-db, rabbitmq]
+
+  gateway:
+    build: ./gateway
+    ports: ["8000:8000"]
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-super-secret-key-change-me}
+      AUTH_SERVICE_URL: http://auth-service:8000
+      USER_SERVICE_URL: http://user-service:8000
+      PRODUCT_SERVICE_URL: http://product-service:8000
+      CART_SERVICE_URL: http://cart-service:8000
+      ORDER_SERVICE_URL: http://order-service:8000
+      PAYMENT_SERVICE_URL: http://payment-service:8000
+      NOTIFICATION_SERVICE_URL: http://notification-service:8000
+      UPSTREAM_TIMEOUT_SECONDS: ${GATEWAY_UPSTREAM_TIMEOUT_SECONDS:-10}
+      RATE_LIMIT_REQUESTS: ${GATEWAY_RATE_LIMIT_REQUESTS:-120}
+      RATE_LIMIT_WINDOW_SECONDS: ${GATEWAY_RATE_LIMIT_WINDOW_SECONDS:-60}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+    depends_on:
+      - auth-service
+      - user-service
+      - product-service
+      - cart-service
+      - order-service
+      - payment-service
+      - notification-service
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).read()"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build: ./frontend
+    ports: ["3000:3000"]
+    environment:
+      VITE_API_URL: http://localhost:8000
+    depends_on:
+      - gateway
