@@ -103,7 +103,7 @@ export function CartPage() {
   }
 
   return (
-    <div>
+    <div className="page-enter">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-600">Покупки</p>
       <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink">Ваша корзина</h1>
       <p className="mt-2 text-sm text-muted">
@@ -114,9 +114,9 @@ export function CartPage() {
       <div className="mt-7 grid gap-6 lg:grid-cols-[1fr_340px]">
         <section className="space-y-3">
           {cart.items.map((item) => (
-            <article key={item.product_id} className="flex flex-wrap items-center gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-card sm:flex-nowrap sm:p-5">
-              <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-brand-50 text-brand-600">
-                <span className="text-xl">N</span>
+            <article key={item.product_id} className="flex flex-wrap items-center gap-4 rounded-2xl border border-[#e8ebe5] bg-white p-4 shadow-card transition hover:border-[#c8d7c8] sm:flex-nowrap sm:p-5">
+              <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-[#edf3eb] text-brand-600">
+                <span className="font-serif text-xl">n.</span>
               </div>
               <div className="min-w-0 flex-1">
                 <Link to={`/products/${item.product_id}`} className="font-semibold text-ink hover:text-brand-700">
@@ -157,7 +157,7 @@ export function CartPage() {
           ))}
         </section>
 
-        <aside className="h-fit rounded-3xl border border-slate-100 bg-white p-6 shadow-card">
+        <aside className="h-fit rounded-3xl border border-[#e8ebe5] bg-white p-6 shadow-card lg:sticky lg:top-28">
           <h2 className="text-lg font-semibold text-ink">Итого</h2>
           <div className="mt-5 flex justify-between text-sm text-muted">
             <span>Товары</span>

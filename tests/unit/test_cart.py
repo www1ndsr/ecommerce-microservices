@@ -20,6 +20,11 @@ def setup_cart(context, monkeypatch, *, product=None):
         return available_product
 
     monkeypatch.setattr(context.main, "fetch_product", fetch_product)
+    monkeypatch.setattr(
+        context.main,
+        "fetch_stock",
+        lambda product_id: {"available": available_product["stock"]},
+    )
 
 
 @pytest.mark.unit

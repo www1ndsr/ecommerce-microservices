@@ -13,6 +13,7 @@ from .config import settings
 from .db import Base, engine, get_db, SessionLocal
 
 PRODUCT = settings.product_service_url
+INVENTORY = settings.inventory_service_url
 CART = settings.cart_service_url
 
 
@@ -58,7 +59,7 @@ def release(items):
         pid, qty = (it["product_id"], it["quantity"]) if isinstance(it, dict) \
             else (it.product_id, it.quantity)
         try:
-            call("POST", f"{PRODUCT}/internal/products/{pid}/release",
+            call("POST", f"{INVENTORY}/internal/inventory/{pid}/release",
                  json={"quantity": qty})
         except HTTPException:
             log.error(f"Failed to release product {pid}")
@@ -85,7 +86,7 @@ def create_order(user_id: int = Depends(current_user_id), db: Session = Depends(
     reserved = []
     try:
         for it in cart["items"]:
-            r = call("POST", f"{PRODUCT}/internal/products/{it['product_id']}/reserve",
+            r = call("POST", f"{INVENTORY}/internal/inventory/{it['product_id']}/reserve",
                      json={"quantity": it["quantity"]})
             if r.status_code == 409:
                 raise HTTPException(409, f"Not enough stock: {it['name']}")

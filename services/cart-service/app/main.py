@@ -50,6 +50,25 @@ def fetch_product(product_id: int) -> dict:
     return resp.json()
 
 
+def fetch_stock(product_id: int) -> dict:
+    """Read available stock from its owning service."""
+    try:
+        resp = httpx.get(
+            f"{settings.inventory_service_url}/api/inventory/{product_id}",
+            timeout=settings.http_timeout,
+            headers={"X-Request-ID": request_id_var.get()},
+        )
+    except httpx.TimeoutException:
+        log.error("inventory-service timeout")
+        raise HTTPException(504, "Inventory service timeout")
+    except httpx.HTTPError as e:
+        log.error(f"inventory-service unreachable: {e!r}")
+        raise HTTPException(502, "Inventory service unavailable")
+    if resp.status_code >= 400:
+        raise HTTPException(502, "Inventory service error")
+    return resp.json()
+
+
 def build_cart(user_id: int) -> schemas.CartOut:
     raw = r.hgetall(key(user_id))
     items = []
@@ -69,10 +88,11 @@ def get_cart(user_id: int = Depends(current_user_id)):
 @app.post("/api/cart/items", response_model=schemas.CartOut)
 def add_item(data: schemas.AddItem, user_id: int = Depends(current_user_id)):
     product = fetch_product(data.product_id)
+    stock = fetch_stock(data.product_id)
     existing = r.hget(key(user_id), str(data.product_id))
     qty = data.quantity + (json.loads(existing)["quantity"] if existing else 0)
-    if qty > product["stock"]:
-        raise HTTPException(409, f"Only {product['stock']} in stock")
+    if qty > stock["available"]:
+        raise HTTPException(409, f"Only {stock['available']} in stock")
     r.hset(key(user_id), str(data.product_id), json.dumps(
         {"name": product["name"], "price": product["price"], "quantity": qty}))
     log.info(f"Cart updated user_id={user_id} product={data.product_id} qty={qty}")

@@ -74,6 +74,41 @@ def test_public_product_get_is_forwarded_with_query_and_response_headers(
 
 
 @pytest.mark.unit
+def test_public_inventory_availability_is_forwarded_without_a_token(
+    service_client_factory,
+):
+    context, upstream = gateway_context(service_client_factory)
+
+    response = context.client.get("/api/inventory?product_ids=1,2")
+
+    assert response.status_code == 200
+    assert upstream.requests[0]["url"].startswith(
+        "http://inventory-service:8000/api/inventory?product_ids=1,2"
+    )
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/reviews?product_id=1",
+        "/api/promotions/SAVE10",
+        "/api/shipping/1",
+        "/api/wishlist",
+    ],
+)
+def test_new_business_service_routes_require_authentication(
+    service_client_factory, path
+):
+    context, upstream = gateway_context(service_client_factory)
+
+    response = context.client.get(path)
+
+    assert response.status_code == 401
+    assert upstream.requests == []
+
+
+@pytest.mark.unit
 def test_protected_route_rejects_missing_invalid_and_expired_tokens(
     service_client_factory,
 ):

@@ -52,27 +52,37 @@ def service_client_factory(monkeypatch):
         main = load_service(service_name)
         session_factory = None
 
-        if hasattr(main, "Base") and hasattr(main, "get_db"):
+        if hasattr(main, "Base") and (
+            hasattr(main, "get_db") or hasattr(main, "SessionLocal")
+        ):
             engine = create_engine(
                 "sqlite://",
                 connect_args={"check_same_thread": False},
                 poolclass=StaticPool,
             )
             engines.append(engine)
-            main.Base.metadata.create_all(engine)
+            if hasattr(main, "SERVICE_MODEL"):
+                main.Base.metadata.create_all(
+                    engine,
+                    tables=[main.SERVICE_MODEL.__table__],
+                )
+            else:
+                main.Base.metadata.create_all(engine)
+            main.engine = engine
             session_factory = sessionmaker(
                 bind=engine,
                 autoflush=False,
                 expire_on_commit=False,
             )
 
-            def override_get_db():
-                with session_factory() as session:
-                    yield session
-
-            main.app.dependency_overrides[main.get_db] = override_get_db
             if hasattr(main, "SessionLocal"):
                 monkeypatch.setattr(main, "SessionLocal", session_factory)
+            if hasattr(main, "get_db"):
+                def override_get_db():
+                    with session_factory() as session:
+                        yield session
+
+                main.app.dependency_overrides[main.get_db] = override_get_db
 
         context = ServiceContext(
             client=TestClient(main.app),

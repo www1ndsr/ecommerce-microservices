@@ -6,8 +6,8 @@ import { useAuth } from "../context/AuthContext";
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   `rounded-full px-3 py-2 text-sm font-medium transition ${
     isActive
-      ? "bg-brand-50 text-brand-700"
-      : "text-slate-600 hover:bg-slate-100 hover:text-ink"
+      ? "bg-[#edf3eb] text-[#31583e]"
+      : "text-slate-600 hover:bg-[#f1f4ef] hover:text-ink"
   }`;
 
 export function Header() {
@@ -48,18 +48,18 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/90 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-30 border-b border-[#e6e9e3]/80 bg-[#f8f9f7]/90 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3.5 sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-2.5">
-          <span className="grid h-10 w-10 place-items-center rounded-2xl bg-ink text-sm font-bold text-white">
-            N
+          <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#20382a] text-sm font-bold text-white shadow-lg shadow-[#20382a]/15">
+            n.
           </span>
           <span>
             <span className="block text-lg font-bold tracking-tight text-ink">
-              nord
+              nord<span className="text-[#588064]">.</span>
             </span>
             <span className="hidden text-[10px] font-semibold uppercase tracking-[0.18em] text-muted sm:block">
-              everyday technology
+              objects for everyday
             </span>
           </span>
         </Link>

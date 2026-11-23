@@ -66,13 +66,13 @@ export function ProfilePage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="page-enter mx-auto max-w-3xl">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-600">Аккаунт</p>
       <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink">Мой профиль</h1>
       <p className="mt-2 text-sm text-muted">
         Данные профиля помогают оформлять покупки удобнее.
       </p>
-      <form onSubmit={submit} className="mt-7 rounded-3xl border border-slate-100 bg-white p-6 shadow-card sm:p-8">
+      <form onSubmit={submit} className="mt-7 rounded-3xl border border-[#e8ebe5] bg-white p-6 shadow-card sm:p-8">
         {error && <div className="mb-5"><ErrorNotice message={error} /></div>}
         {notice && (
           <p role="status" className="mb-5 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">

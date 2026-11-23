@@ -80,8 +80,8 @@ def custom_openapi():
                 operation["description"] = (
                     f"{operation.get('description', '')} "
                     "Authenticate in Swagger with a Bearer JWT. "
-                    "Registration, login and public product GET routes "
-                    "do not require a token."
+                    "Registration, login, product GET routes and inventory "
+                    "availability GET routes do not require a token."
                 ).strip()
 
     app.openapi_schema = schema

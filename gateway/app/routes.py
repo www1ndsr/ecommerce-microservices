@@ -12,6 +12,11 @@ _SERVICES = {
     "orders": "Order",
     "payments": "Payment",
     "notifications": "Notification",
+    "inventory": "Inventory",
+    "reviews": "Review",
+    "promotions": "Promotion",
+    "shipping": "Shipping",
+    "wishlist": "Wishlist",
 }
 def _make_endpoint(service: str, method: str, has_path: bool):
     if has_path:

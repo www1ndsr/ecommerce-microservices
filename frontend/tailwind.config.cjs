@@ -4,19 +4,19 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        ink: "#172033",
-        muted: "#667085",
-        canvas: "#f5f7fb",
+        ink: "#1c2b22",
+        muted: "#6d786f",
+        canvas: "#f6f7f5",
         brand: {
-          50: "#eff6ff",
-          100: "#dbeafe",
-          500: "#3b82f6",
-          600: "#2563eb",
-          700: "#1d4ed8",
+          50: "#eef4ee",
+          100: "#dce9dc",
+          500: "#5a8065",
+          600: "#416b4e",
+          700: "#31583e",
         },
       },
       boxShadow: {
-        card: "0 10px 35px rgba(23, 32, 51, 0.06)",
+        card: "0 10px 35px rgba(28, 43, 34, 0.06)",
       },
     },
   },

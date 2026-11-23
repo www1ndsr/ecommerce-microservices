@@ -12,7 +12,3 @@ class ProductIn(BaseModel):
 class ProductOut(ProductIn):
     model_config = ConfigDict(from_attributes=True)
     id: int
-
-
-class StockChange(BaseModel):
-    quantity: int = Field(gt=0)

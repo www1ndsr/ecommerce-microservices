@@ -15,12 +15,12 @@ React-интерфейсом. Документ описывает фактиче
 
 E-commerce (электронная коммерция) здесь означает каталог товаров, корзину,
 оформление заказов, обработку результата оплаты и уведомления. Пользователь
-работает с React-приложением; запросы к семи бизнес-сервисам направляются через
+работает с React-приложением; запросы к двенадцати бизнес-сервисам направляются через
 единый API Gateway.
 
 В монолитном приложении эти обязанности находились бы в одной программе. Здесь
 они разделены по бизнес-областям: например, складской остаток принадлежит
-Product Service, а состояние заказа — Order Service. Это облегчает независимую
+Inventory Service, а состояние заказа — Order Service. Это облегчает независимую
 разработку, но добавляет межсервисные вызовы, сетевые ошибки и необходимость
 согласовывать события.
 
@@ -30,11 +30,11 @@ Product Service, а состояние заказа — Order Service. Это о
 |---|---|
 | Python | Язык backend-сервисов и API Gateway. |
 | FastAPI | HTTP API, проверка входных данных через Pydantic и автоматическая OpenAPI-документация сервисов. |
-| PostgreSQL | Реляционные данные Auth, User, Product, Order и Payment. Compose создает для них отдельные PostgreSQL-сервисы. |
+| PostgreSQL | Реляционные данные Auth, User, Product, Order, Payment, Inventory, Review, Promotion, Shipping и Wishlist. Compose создает для них отдельные базы. |
 | Redis | Корзины пользователей; хэш Redis хранит позиции корзины. |
 | MongoDB | Документы уведомлений и журнал обработанных событий. |
 | RabbitMQ | Асинхронная передача событий заказа и результата оплаты. |
-| Docker и Docker Compose | Сборка и запуск всего локального стека из 17 контейнеров. |
+| Docker и Docker Compose | Сборка и запуск локального стека из 27 контейнеров. |
 | React | Интерфейс магазина и состояние пользовательской сессии. |
 | TypeScript | Типы API-ответов и проверка frontend-кода при сборке. |
 | Vite | Dev-сервер и сборщик frontend. |
@@ -46,7 +46,7 @@ Product Service, а состояние заказа — Order Service. Это о
 ## 2. Архитектура проекта
 
 **Микросервис** — небольшой сервис с отдельной бизнес-ответственностью и
-собственным API. В этом проекте семь сервисов не являются инфраструктурой:
+собственным API. В этом проекте двенадцать сервисов не являются инфраструктурой:
 PostgreSQL, Redis, MongoDB и RabbitMQ — зависимости, а не дополнительные
 бизнес-сервисы.
 
@@ -62,11 +62,21 @@ flowchart LR
     Order["Order Service"]
     Payment["Payment Service"]
     Notification["Notification Service"]
+    Inventory["Inventory Service"]
+    Review["Review Service"]
+    Promotion["Promotion Service"]
+    Shipping["Shipping Service"]
+    Wishlist["Wishlist Service"]
     AuthDB[("PostgreSQL<br/>auth")]
     UserDB[("PostgreSQL<br/>users")]
     ProductDB[("PostgreSQL<br/>products")]
     OrderDB[("PostgreSQL<br/>orders")]
     PaymentDB[("PostgreSQL<br/>payments")]
+    InventoryDB[("PostgreSQL<br/>inventory")]
+    ReviewDB[("PostgreSQL<br/>reviews")]
+    PromotionDB[("PostgreSQL<br/>promotions")]
+    ShippingDB[("PostgreSQL<br/>shipping")]
+    WishlistDB[("PostgreSQL<br/>wishlist")]
     Redis[("Redis<br/>корзины")]
     Mongo[("MongoDB<br/>notifications")]
     Rabbit["RabbitMQ<br/>shop.events"]
@@ -80,10 +90,20 @@ flowchart LR
     Gateway --> Order
     Gateway --> Payment
     Gateway --> Notification
+    Gateway --> Inventory
+    Gateway --> Review
+    Gateway --> Promotion
+    Gateway --> Shipping
+    Gateway --> Wishlist
 
     Auth --> AuthDB
     User --> UserDB
     Product --> ProductDB
+    Inventory --> InventoryDB
+    Review --> ReviewDB
+    Promotion --> PromotionDB
+    Shipping --> ShippingDB
+    Wishlist --> WishlistDB
     Order --> OrderDB
     Payment --> PaymentDB
     Cart --> Redis
@@ -91,7 +111,8 @@ flowchart LR
 
     Cart -->|"REST: GET product"| Product
     Order -->|"REST: получить/очистить корзину"| Cart
-    Order -->|"REST: резерв/возврат stock"| Product
+    Order -->|"REST: резерв/возврат stock"| Inventory
+    Shipping -->|"REST: проверить заказ и PAID"| Order
     Order -->|"order.created"| Rabbit
     Rabbit --> Payment
     Payment -->|"payment.completed / payment.failed"| Rabbit
@@ -141,15 +162,12 @@ flowchart LR
 │   ├── cart-service/
 │   ├── order-service/
 │   ├── payment-service/
-│   └── notification-service/
-│       └── app/
-│           ├── main.py
-│           ├── models.py
-│           ├── schemas.py
-│           ├── db.py
-│           ├── events.py
-│           ├── config.py
-│           └── common.py
+│   ├── notification-service/
+│   ├── inventory-service/
+│   ├── review-service/
+│   ├── promotion-service/
+│   ├── shipping-service/
+│   └── wishlist-service/
 ├── frontend/
 │   ├── Dockerfile
 │   ├── package.json
@@ -175,22 +193,23 @@ flowchart LR
 
 - `gateway/` — единая внешняя точка входа, аутентификация запросов, прокси,
   CORS, лимит запросов и OpenAPI Gateway.
-- `services/` — семь бизнес-сервисов. Обычно `main.py` содержит маршруты и
-  основную логику, `models.py` — модели хранения, `schemas.py` — API-схемы,
-  `db.py` — подключение к хранилищу. Не у каждого сервиса есть все эти файлы:
+- `services/` — двенадцать бизнес-сервисов. У каждого сервиса собственные
+  `main.py`, модели, Pydantic-схемы, конфигурация и подключение к своему
+  хранилищу. Не у каждого сервиса есть все эти файлы:
   Cart использует Redis, а не SQLAlchemy; RabbitMQ-код есть у Order, Payment и
   Notification. У сервисов также есть собственные `Dockerfile` и
   `requirements.txt`.
 - `frontend/` — React-приложение. API-клиенты отделены от страниц в `src/api/`.
-- `tests/` — pytest-тесты и безопасная тестовая инфраструктура; настоящего
-  integration-набора с Docker-сервисами там нет.
-- `docker-compose.yml` — конфигурация 17 контейнеров и их внутренних адресов.
+- `tests/` — pytest-тесты и безопасная тестовая инфраструктура; для каждого
+  из пяти новых сервисов добавлены изолированные API-тесты. Полного
+  integration-набора с живыми Docker-зависимостями там нет.
+- `docker-compose.yml` — конфигурация 27 контейнеров и их внутренних адресов.
 - `pytest.ini` — test path и маркеры `unit`/`integration`.
 - `README.md` — эта документация.
 - `docs/` и `infrastructure/` присутствуют в корне, но в текущем дереве не
   содержат основной реализации приложения.
 
-## 4. Семь бизнес-микросервисов
+## 4. Двенадцать бизнес-микросервисов
 
 ### 4.1 Auth Service
 
@@ -269,12 +288,15 @@ JWT. Хранит учетную запись и роль, но не профи�
 
 ### 4.3 Product Service
 
-**Назначение.** Владеет карточками товаров и остатками. Каталог читается
+**Назначение.** Владеет карточками товаров. Актуальные остатки и резервы
+принадлежат Inventory Service. Каталог читается
 публично; изменение каталога доступно роли `admin`.
 
 **Хранение и модели.** PostgreSQL database `products`, таблица `products`.
 `Product` имеет `id`, `name`, `description`, `price`, `stock`, `image_url`.
-`ProductIn` требует непустое имя, цену `> 0`, остаток `>= 0`; `ProductOut`
+Поле `stock` в карточке — начальное/отображаемое значение каталога; текущий
+доступный остаток возвращает Inventory Service. `ProductIn` требует непустое
+имя, цену `> 0`, остаток `>= 0`; `ProductOut`
 добавляет ID. При старте, если таблица пуста, `lifespan` добавляет шесть
 демонстрационных товаров из `DEMO`.
 
@@ -288,9 +310,6 @@ JWT. Хранит учетную запись и роль, но не профи�
 - `get_product()` возвращает карточку товара.
 - `create_product()`, `update_product()` и `delete_product()` управляют
   каталогом; создание — `201`, удаление — `204`.
-- `reserve(product_id, data, db)` атомарно уменьшает остаток, если товара
-  достаточно; иначе возвращает `409`.
-- `release(product_id, data, db)` возвращает количество на склад.
 - `health()` и `ready(db)` проверяют приложение и PostgreSQL.
 
 | Метод и маршрут | Доступ | Назначение |
@@ -300,13 +319,11 @@ JWT. Хранит учетную запись и роль, но не профи�
 | `POST /api/products` | Admin | Создание, `201`; валидация — `422`. |
 | `PUT /api/products/{product_id}` | Admin | Полная замена полей товара. |
 | `DELETE /api/products/{product_id}` | Admin | Удаление, `204`. |
-| `POST /internal/products/{product_id}/reserve` | Внутренний вызов Order | Резерв товара; `409` при нехватке. |
-| `POST /internal/products/{product_id}/release` | Внутренний вызов Order | Возврат зарезервированного остатка. |
 | `GET /health`, `GET /ready` | Служебные | Проверки процесса и PostgreSQL. |
 
-**Пример.** Корзина проверяет наличие товара через `GET /api/products/{id}`.
-При оформлении Order Service вызывает внутренний маршрут `reserve`, а не
-изменяет Product Service database напрямую.
+**Пример.** Корзина получает карточку через `GET /api/products/{id}`.
+При оформлении Order Service вызывает внутренние маршруты Inventory Service,
+а не изменяет базы Product или Inventory напрямую.
 
 ### 4.4 Cart Service
 
@@ -321,8 +338,9 @@ JWT. Хранит учетную запись и роль, но не профи�
 **Основная логика.**
 
 - `current_user_id()` получает identity из Gateway-заголовка.
-- `fetch_product(product_id)` делает REST GET к Product Service. Таймаут дает
-  `504`, сетевой сбой — `502`, отсутствующий товар — `404`.
+- `fetch_product(product_id)` получает карточку товара у Product Service,
+  а `fetch_stock(product_id)` берет актуальный остаток у Inventory Service.
+  Таймаут дает `504`, сетевой сбой — `502`, отсутствующий товар — `404`.
 - `build_cart(user_id)` читает Redis hash, сортирует позиции и считает сумму.
 - `get_cart()`, `add_item()`, `remove_item()` и `clear_cart()` реализуют
   пользовательские операции. Повторное добавление увеличивает количество;
@@ -362,7 +380,7 @@ Redis. Цены хранятся в snapshot корзины; Order Service ис�
 - `current_user_id()` читает пользователя, добавленный Gateway.
 - `call(method, url, **kw)` вызывает соседние сервисы по HTTP, передает
   `X-Request-ID`; таймаут преобразует в `504`, сетевую ошибку — в `502`.
-- `release(items)` компенсирует ранее успешные резервы, вызывая Product Service.
+- `release(items)` компенсирует ранее успешные резервы, вызывая Inventory Service.
 - `get_order_or_404(db, order_id, user_id, role)` проверяет наличие и право
   пользователя видеть заказ.
 - `create_order(user_id, db)` получает внутреннюю корзину, отклоняет пустую
@@ -388,8 +406,8 @@ Redis. Цены хранятся в snapshot корзины; Order Service ис�
 | `GET /health`, `GET /ready` | Служебные | Проверки процесса и PostgreSQL. |
 
 **Пример.** Order Service не обращается к Redis напрямую: корзину и ее очистку
-он запрашивает у Cart Service по внутреннему REST API. Аналогично остатки
-изменяются только через Product Service.
+он запрашивает у Cart Service по внутреннему REST API. Резервирование и
+освобождение остатков выполняет Inventory Service.
 
 ### 4.6 Payment Service
 
@@ -465,13 +483,34 @@ API-ответ.
 должны приводить к одному уведомлению. В текущем Frontend нет страницы или
 клиентского API-модуля уведомлений; этот API доступен через Gateway/Swagger.
 
+### Дополнительные бизнес-сервисы
+
+Пять новых сервисов разворачиваются отдельными Compose-контейнерами, имеют
+собственные приложения, модели, схемы, конфигурации, бизнес-логику и
+PostgreSQL-базы, и публикуются через Gateway.
+
+| Сервис | Ответственность | Основные маршруты |
+|---|---|---|
+| Inventory Service | Доступный и зарезервированный остаток; атомарное резервирование и возврат stock. | `GET /api/inventory?product_ids=`, `GET /api/inventory/{product_id}`, `PUT /api/inventory/{product_id}` (admin), внутренние `POST /internal/inventory/{id}/reserve` и `/release`. |
+| Review Service | Создание и редактирование отзывов, один отзыв на пользователя и товар, рейтинг и сводка. | `POST /api/reviews`, `GET /api/reviews?product_id=`, `GET /api/reviews/summary/{product_id}`, `PUT /api/reviews/{id}`, `DELETE /api/reviews/{id}`. |
+| Promotion Service | Управление промокодами и расчёт скидки. | `GET /api/promotions`, `POST /api/promotions` (admin), `GET/PATCH/DELETE /api/promotions/{code}`, `POST /api/promotions/validate`. |
+| Shipping Service | Проверка оплаченного заказа в Order Service, создание отправления и допустимые переходы статусов. | `POST /api/shipping`, `GET /api/shipping`, `GET /api/shipping/{order_id}`, `PATCH /api/shipping/{order_id}/status` с JSON `{"status":"PROCESSING"}` (admin). |
+| Wishlist Service | Персональный список желаний, защита от дублей и очистка. | `GET /api/wishlist`, `POST /api/wishlist`, `DELETE /api/wishlist/{product_id}`, `DELETE /api/wishlist`. |
+
+У всех пяти сервисов есть `/health` и `/ready`. Inventory получает
+демонстрационные остатки для шести начальных товаров; для новых товаров
+администратор задает остаток через `PUT /api/inventory/{id}`. Поле `stock` в
+Product Service остается начальным/отображаемым значением каталога, а
+резервирование заказа выполняет Inventory Service.
+
 ## 5. API Gateway
 
 Gateway — опубликованная внешняя точка входа (`localhost:8000`). Frontend не
 вызывает сервисы напрямую. `gateway/app/routes.py` регистрирует прокси для
 префиксов `/api/auth`, `/api/users`, `/api/products`, `/api/cart`,
-`/api/orders`, `/api/payments`, `/api/notifications` и методов GET, POST, PUT,
-PATCH, DELETE.
+`/api/orders`, `/api/payments`, `/api/notifications`, `/api/inventory`,
+`/api/reviews`, `/api/promotions`, `/api/shipping`, `/api/wishlist` и методов
+GET, POST, PUT, PATCH, DELETE.
 
 ### Обработка запроса
 
@@ -481,7 +520,7 @@ PATCH, DELETE.
 3. `proxy.py` определяет сервис назначения и публичность маршрута.
 4. Для защищенного запроса `auth.py` проверяет HS256 JWT с обязательными
    `exp`, `sub`, `role`. `sub` должен быть положительным числовым ID.
-5. Публичны только POST регистрации/входа и GET каталога товаров/карточек.
+5. Публичны POST регистрации/входа и GET товаров/остатков каталога.
    Остальные `/api/*` требуют Bearer JWT.
 6. Запись/изменение товара дополнительно требует роль `admin`.
 7. Перед отправкой Gateway удаляет присланные клиентом `X-User-ID`,
@@ -542,14 +581,19 @@ forwarding; `middleware.py` отвечает за request ID и rate limit.
 |---|---|---|---|
 | Auth Service | PostgreSQL, database `auth`, контейнер `auth-db` | Учетные записи и хеши паролей | Реляционные записи, уникальность email. |
 | User Service | PostgreSQL, database `users`, контейнер `user-db` | Профили покупателей | Структурированные поля профиля. |
-| Product Service | PostgreSQL, database `products`, контейнер `product-db` | Товары и stock | Карточки товара и атомарное изменение остатка. |
+| Product Service | PostgreSQL, database `products`, контейнер `product-db` | Карточки товаров | Структура каталога и поиск. |
+| Inventory Service | PostgreSQL, database `inventory`, контейнер `inventory-db` | Доступный и зарезервированный stock | Атомарное резервирование и освобождение остатков. |
 | Order Service | PostgreSQL, database `orders`, контейнер `order-db` | Заказы и позиции | Связанные сущности, статусы и snapshot заказа. |
 | Payment Service | PostgreSQL, database `payments`, контейнер `payment-db` | Итог симулированной оплаты | Уникальность `order_id` защищает от дублирования записи. |
 | Cart Service | Redis DB `0`, контейнер `cart-db` | Хэши `cart:<user_id>` | Быстрое чтение и обновление краткоживущей корзины. |
 | Notification Service | MongoDB database `notifications`, контейнер `notification-db` | `notifications`, `processed_events` | Документ уведомления и журнал идемпотентности. |
+| Review Service | PostgreSQL, database `reviews`, контейнер `review-db` | Отзывы и оценки товаров | Структурированные отзывы с владельцем. |
+| Promotion Service | PostgreSQL, database `promotions`, контейнер `promotion-db` | Промокоды и скидки | Проверка активных кодов и ограничение диапазона скидки. |
+| Shipping Service | PostgreSQL, database `shipping`, контейнер `shipping-db` | Адрес и состояние отправления | Структурированное состояние доставки. |
+| Wishlist Service | PostgreSQL, database `wishlist`, контейнер `wishlist-db` | Товары в списке желаний | Список раздельно по пользователям. |
 
-Это действительно отдельные Compose-сервисы PostgreSQL для пяти областей, а не
-пять баз внутри одного контейнера PostgreSQL. MongoDB и Redis также имеют
+Это действительно отдельные Compose-сервисы PostgreSQL для десяти областей, а не
+несколько баз внутри одного контейнера PostgreSQL. MongoDB и Redis также имеют
 отдельные контейнеры.
 
 В `docker-compose.yml` не объявлены именованные `volumes`. Не делайте вывод, что
@@ -574,17 +618,19 @@ REST — стиль API поверх HTTP, где маршрут описыва�
 | Кто вызывает | Куда | Зачем |
 |---|---|---|
 | Frontend | API Gateway `/api/*` | Внешний доступ к backend; вся работа идет через Gateway. |
-| Cart Service | Product Service `GET /api/products/{id}` | Проверить существование и stock товара перед добавлением. |
+| Cart Service | Product Service `GET /api/products/{id}` | Проверить существование товара и получить карточку. |
+| Cart Service | Inventory Service `GET /api/inventory/{id}` | Проверить доступный остаток перед добавлением. |
 | Order Service | Cart Service `GET /internal/cart/{user_id}` | Получить snapshot корзины. |
-| Order Service | Product Service `POST /internal/products/{id}/reserve` | Зарезервировать позиции. |
+| Order Service | Inventory Service `POST /internal/inventory/{id}/reserve` | Зарезервировать позиции. |
 | Order Service | Cart Service `DELETE /internal/cart/{user_id}` | Очистить корзину после создания заказа. |
-| Order Service | Product Service `POST /internal/products/{id}/release` | Компенсировать резерв при ошибке, отмене или неуспешной оплате. |
+| Order Service | Inventory Service `POST /internal/inventory/{id}/release` | Компенсировать резерв при ошибке, отмене или неуспешной оплате. |
+| Shipping Service | Order Service `GET /api/orders/{id}` | Проверить существование, владельца и статус `PAID` перед созданием отправления. |
 
 ### Пример: оформление заказа
 
 1. Frontend делает `POST /api/orders` через Gateway с JWT.
 2. Order Service получает корзину через Cart Service.
-3. Для каждой позиции Order Service вызывает Product Service и резервирует stock.
+3. Для каждой позиции Order Service вызывает Inventory Service и резервирует stock.
 4. Если резерв одной позиции не проходит (`409`), Order Service пытается
    освободить уже зарезервированные позиции.
 5. После успешного резерва сохраняется `Order` и его `OrderItem` в своей
@@ -625,7 +671,7 @@ sequenceDiagram
     participant GW as Gateway
     participant Order as Order Service
     participant Cart as Cart Service
-    participant Product as Product Service
+    participant Inventory as Inventory Service
     participant MQ as RabbitMQ shop.events
     participant Payment as Payment Service
     participant Notify as Notification Service
@@ -636,8 +682,8 @@ sequenceDiagram
     Order->>Cart: GET /internal/cart/{user_id}
     Cart-->>Order: Позиции и сумма
     loop Для каждой позиции
-        Order->>Product: POST /internal/products/{id}/reserve
-        Product-->>Order: Новый остаток или 409
+        Order->>Inventory: POST /internal/inventory/{id}/reserve
+        Inventory-->>Order: Новый остаток или 409
     end
     Order->>Order: Сохраняет заказ со статусом PENDING
     Order->>Cart: DELETE /internal/cart/{user_id}
@@ -651,7 +697,7 @@ sequenceDiagram
     MQ-->>Order: payment.*
     Order->>Order: PAID или PAYMENT_FAILED
     opt Оплата не прошла
-        Order->>Product: POST /internal/products/{id}/release
+        Order->>Inventory: POST /internal/inventory/{id}/release
     end
     MQ-->>Notify: payment.completed или payment.failed
     Notify->>Notify: Создать уведомление о результате
@@ -916,7 +962,7 @@ URL `http://product-service:8000` не предназначен для брау�
 4. Проверить `/health` каждого бизнес-сервиса из контейнера Gateway можно так:
 
    ```powershell
-   $services = @("auth-service","user-service","product-service","cart-service","order-service","payment-service","notification-service")
+   $services = @("auth-service","user-service","product-service","cart-service","order-service","payment-service","notification-service","inventory-service","review-service","promotion-service","shipping-service","wishlist-service")
    foreach ($service in $services) {
        $url = "http://${service}:8000/health"
        docker compose exec -T gateway python -c "import urllib.request; print(urllib.request.urlopen('$url', timeout=3).status)"
@@ -973,8 +1019,8 @@ pytest запускает функции `test_*`. Тесты разделены
 - `tests/conftest.py` задает безопасные переменные до импорта приложений:
   SQLite, loopback-порты, отдельное имя тестовой MongoDB и тестовый JWT-ключ.
 - `service_client_factory` загружает приложение без production lifespan,
-  переопределяет SQLAlchemy `get_db` на SQLite in-memory `StaticPool`, создает
-  таблицы на тест и закрывает клиент/engine после теста.
+  подменяет базы на SQLite in-memory `StaticPool`, создает нужные таблицы и
+  закрывает клиент/engine после теста.
 - `tests/support/service_loader.py` импортирует одноименные Python-пакеты
   `app` под разными именами, чтобы сервисы не конфликтовали в `sys.modules`.
 - `tests/support/fakes.py` содержит `FakeRedis`, `FakeMongoCollection` и
@@ -1019,8 +1065,8 @@ pytest запускает функции `test_*`. Тесты разделены
 - `test_product_changes_require_admin_and_validate_fields` — проверяет
   запрет изменения без admin, `422` для нулевой цены, создание, обновление и
   удаление.
-- `test_product_stock_reservation_and_release` — проверяет уменьшение/возврат
-  stock и `409` при нехватке остатка.
+- `test_stock_reservation_is_owned_by_inventory_service` — проверяет, что
+  устаревший внутренний маршрут резервирования удален из Product Service.
 
 #### `tests/unit/test_cart.py`
 
@@ -1036,7 +1082,7 @@ pytest запускает функции `test_*`. Тесты разделены
 #### `tests/unit/test_orders.py`
 
 - `test_order_creation_uses_cart_reserves_stock_and_publishes_event` —
-  проверяет вызов Cart, резерв Product, удаление корзины, создание `PENDING` и
+  проверяет вызов Cart, резерв Inventory, удаление корзины, создание `PENDING` и
   публикацию `order.created`.
 - `test_empty_cart_cannot_create_order` — ожидает `400`, отсутствие записи и
   отсутствие события.
@@ -1073,6 +1119,10 @@ pytest запускает функции `test_*`. Тесты разделены
 
 - `test_public_product_get_is_forwarded_with_query_and_response_headers` —
   проверяет публичный прокси, query string и заголовки upstream.
+- `test_public_inventory_availability_is_forwarded_without_a_token` — проверяет
+  публичный маршрут остатков каталога.
+- `test_new_business_service_routes_require_authentication` — параметризованно
+  проверяет JWT-защиту Review, Promotion, Shipping и Wishlist API.
 - `test_protected_route_rejects_missing_invalid_and_expired_tokens` — все три
   варианта должны получить `401`, не дойдя до upstream.
 - `test_gateway_replaces_spoofed_identity_headers_with_jwt_claims` — проверяет,
@@ -1092,6 +1142,17 @@ pytest запускает функции `test_*`. Тесты разделены
 - `test_notification_consumer_acknowledges_valid_event` — проверяет передачу
   routing key и JSON payload обработчику и ACK.
 
+#### `tests/unit/test_domain_services.py`
+
+- Проверяет Inventory reserve/release, admin-доступ и batch-чтение остатков.
+- Проверяет Reviews: дублирование, доступ автора, среднюю оценку и сводку.
+- Проверяет Promotions: admin-доступ, нормализацию кода, расчёт скидки,
+  изменение активности и дубликаты.
+- Проверяет Shipping: право владельца заказа, требование статуса `PAID`,
+  владельца отправления, допустимые статусы и конфликт дубликата.
+- Проверяет Wishlist: изоляцию пользователей, дублирование, удаление и очистку.
+- Проверяет `/health` и `/ready` каждого из пяти новых сервисов.
+
 ### Запуск тестов
 
 Из корня репозитория в PowerShell:
@@ -1102,10 +1163,10 @@ $projectPath = (Get-Location).Path
 docker run --rm --network none --mount "type=bind,source=$projectPath,target=/workspace" --workdir /workspace ecommerce-pytest-runner:latest
 ```
 
-Последний проверенный запуск: **49 passed, 0 failed, 0 skipped**. Было одно
+Текущая версия набора завершилась с **66 passed, 0 failed**. Pytest показал одно
 предупреждение о deprecated alias `anyio.abc.BlockingPortal` в Starlette
-TestClient. Это unit/API-тесты с SQLite и фейками, а не доказательство
-работоспособности полного живого workflow между контейнерами.
+TestClient. Тесты используют SQLite и фейки, поэтому не проверяют
+полный живой workflow между контейнерами.
 
 ## 15. Логирование и ошибки
 
@@ -1192,9 +1253,9 @@ Payment Service не списывает реальные деньги. Frontend 
 1. **Что такое микросервис?** Небольшой независимо запускаемый компонент с
    определенной бизнес-ответственностью и API. Например, Product Service
    управляет товарами, Order Service — заказами.
-2. **Почему сервисов семь?** В проекте выделены учетные записи, профиль,
-   товары, корзина, заказ, оплата и уведомления. Это отдельные области
-   данных/логики, а не семь копий одного приложения.
+2. **Почему сервисов двенадцать?** Выделены учетные записи, профиль,
+   каталог, склад, корзина, заказ, оплата, уведомления, отзывы, акции,
+   доставка и список желаний. Это разные области данных и бизнес-логики.
 3. **Зачем нужен API Gateway?** Frontend обращается к одному внешнему адресу.
    Gateway выбирает upstream, проверяет JWT, формирует identity-заголовки и
    унифицирует request ID/ошибки.
@@ -1232,7 +1293,7 @@ Payment Service не списывает реальные деньги. Frontend 
     универсальные, а не схемы каждого downstream.
 17. **Что делает Docker?** Упаковывает сервис и его зависимости в контейнер,
     чтобы запуск был воспроизводимым.
-18. **Зачем Docker Compose?** Описывает 17 контейнеров, переменные окружения,
+18. **Зачем Docker Compose?** Описывает Compose-контейнеры, переменные окружения,
     порты и внутренние адреса одним файлом.
 19. **Как создается заказ?** Order Service читает корзину, резервирует товары,
     записывает order/items, очищает корзину и публикует `order.created`.
@@ -1254,11 +1315,28 @@ Payment Service не списывает реальные деньги. Frontend 
     Gateway локальный для процесса; реальные broker/database integration
     tests не добавлены; Compose не объявляет именованные volumes.
 
+### Статус относительно задания
+
+| Пункт задания | Статус | Что реализовано и что осталось |
+|---|---|---|
+| 4. Ответственность, API, логика, независимый запуск и конфигурация сервисов | **Сделано** | У каждого из 12 сервисов отдельные приложение, API, модели, схемы, конфигурация и ответственность; все запускаются отдельными Compose-контейнерами. |
+| 4. Ошибки и logging у каждого сервиса | **Сделано** | Ошибки валидации, HTTP и БД обработаны; есть health/readiness и логи с временем, сервисом, уровнем и request ID. |
+| 5. Независимые данные | **Сделано** | У каждого backend-сервиса своё хранилище: десять отдельных PostgreSQL баз, Redis у Cart и MongoDB у Notification. Inventory является владельцем актуального остатка. |
+| 6. Взаимодействие сервисов | **Сделано** | REST используется Cart → Product/Inventory, Order → Cart/Inventory и Shipping → Order. RabbitMQ передает события заказа и результата платежа между Order, Payment и Notification. Надёжной outbox-доставки нет. |
+| 7. API Gateway | **Сделано** | Gateway обеспечивает маршрутизацию, JWT-аутентификацию, передачу identity, rate limiting и request logging. Агрегация нескольких ответов не реализована; она указана в задании как необязательная функция. |
+| 8. Технологии и обоснование | **Сделано** | Python/FastAPI, PostgreSQL, Redis, MongoDB и RabbitMQ; назначение технологий объяснено в разделе 1. |
+| 9. Обязательные API, хранение, авторизация, документация и health checks | **Сделано** | REST, отдельные хранилища, JWT/роли, README/OpenAPI Gateway, `/health` и `/ready` у всех сервисов. |
+| 10. Документация API | **Сделано частично** | Основные endpoints описаны в README, есть Swagger Gateway. Схемы проксируемых downstream API в Swagger обобщённые, не такие подробные, как OpenAPI каждого отдельного сервиса. |
+| 11. Обработка ошибок | **Сделано** | Есть `4xx` для валидации/авторизации/отсутствующих ресурсов, `502`/`503`/`504` для зависимостей и БД; пользователю не возвращается stack trace. Полный сценарий отказов реальных зависимостей не интеграционно проверен. |
+| 12. Logging | **Сделано** | Все сервисы, включая пять новых, пишут структурированные JSON-логи с временем, именем сервиса, уровнем, request ID и сообщением. |
+| 13. Структура проекта | **Сделано по сути** | Есть README, Compose, `services/`, `gateway/` и `tests/`. Отдельных корневых `docs/` и `infrastructure/` каталогов нет; в примере задания это образец структуры. |
+| 14. Тестирование | **Частично** | Изолированные API/unit-тесты новых сервисов, Gateway, авторизации и health/readiness запущены: **66 passed**. Интеграционных тестов на настоящих контейнерах и полного end-to-end сценария нет. |
+
 ### Сильные стороны и ограничения
 
 Сильные стороны — разделение ответственности и данных, сочетание REST с
-RabbitMQ, общий Gateway, JWT, health/readiness-маршруты и 49 изолированных
-тестовых сценариев.
+RabbitMQ, общий Gateway, JWT и health/readiness-маршруты. Unit-тесты покрывают
+все пять новых доменных API; integration-тестов полного контейнерного workflow нет.
 
 При защите важно прямо сказать, что платеж не обращается к банку, события
 публикуются без outbox, Notification UI отсутствует, admin-аккаунт не
@@ -1272,11 +1350,16 @@ host-портов. Кроме того, `depends_on` задает порядок
 |---|---|---|
 | Auth Service | Регистрация, вход, JWT | PostgreSQL `auth` |
 | User Service | Профиль | PostgreSQL `users` |
-| Product Service | Каталог и остатки | PostgreSQL `products` |
+| Product Service | Каталог | PostgreSQL `products` |
+| Inventory Service | Складские остатки и резервы | PostgreSQL `inventory` |
 | Cart Service | Корзина | Redis DB `0` |
 | Order Service | Заказы и статусы | PostgreSQL `orders` |
 | Payment Service | Симуляция результата оплаты | PostgreSQL `payments` |
 | Notification Service | Уведомления и дедупликация событий | MongoDB `notifications` |
+| Review Service | Отзывы о товарах | PostgreSQL `reviews` |
+| Promotion Service | Промокоды и скидки | PostgreSQL `promotions` |
+| Shipping Service | Отправления и статусы доставки | PostgreSQL `shipping` |
+| Wishlist Service | Списки желаний | PostgreSQL `wishlist` |
 
 - Frontend: `http://localhost:3000`
 - Gateway и Swagger: `http://localhost:8000`, `/docs`, `/redoc`
@@ -1293,13 +1376,13 @@ host-портов. Кроме того, `depends_on` задает порядок
 
 ## Проверки документации и известные ограничения
 
-При подготовке проверены Compose mappings, реальные API-маршруты и модели,
-события/очереди, frontend-маршруты и все функции `test_*`. На момент проверки
-все 17 Compose-контейнеров были `Up`; Gateway был `healthy`; Frontend,
-Gateway `/health`/`/ready`, `/docs`, `/openapi.json`, Management HTTP endpoint
-и `/health` всех семи сервисов отвечали успешно. Подключение Payment и
-Notification сервисов к RabbitMQ проверялось отдельно без обращения к базам.
-Ранее изолированный pytest-запуск завершился с 49 passing тестами.
+Проверены Compose mappings и выполнен `docker compose config --quiet`.
+Пять новых Docker-образов успешно собраны, и каждый из них отдельно прошёл
+проверку импорта приложения и startup-хука в контейнере. Изолированный
+pytest-набор завершился с **66 passed, 0 failed** (один warning о deprecated
+alias в Starlette/AnyIO). Полный Compose-стек после расширения и изменённый
+сквозной workflow повторно не запускались; изолированный startup не подтверждает
+готовность сервисов в общей сети с реальными PostgreSQL, RabbitMQ, Redis и MongoDB.
 
 Не проверялись повторно реальные изменения данных через полный workflow; такой
 workflow может менять stock, заказ и уведомления. Отдельные backend Swagger

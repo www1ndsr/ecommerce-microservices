@@ -30,7 +30,7 @@ export function OrdersPage() {
   }, []);
 
   return (
-    <div>
+    <div className="page-enter">
       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-600">Покупки</p>
       <h1 className="mt-1 text-3xl font-bold tracking-tight text-ink">Мои заказы</h1>
       <p className="mt-2 text-sm text-muted">История и актуальный статус ваших заказов.</p>
@@ -52,7 +52,7 @@ export function OrdersPage() {
               <Link
                 key={order.id}
                 to={`/orders/${order.id}`}
-                className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-card transition hover:border-brand-100 hover:shadow-lg"
+                className="group flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#e8ebe5] bg-white p-5 shadow-card transition duration-200 hover:-translate-y-0.5 hover:border-[#c8d7c8] hover:shadow-lg"
               >
                 <div>
                   <p className="font-semibold text-ink">Заказ №{order.id}</p>

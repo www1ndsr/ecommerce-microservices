@@ -13,6 +13,11 @@ SERVICE_APP_PATHS = {
     "order-service": PROJECT_ROOT / "services" / "order-service" / "app",
     "payment-service": PROJECT_ROOT / "services" / "payment-service" / "app",
     "notification-service": PROJECT_ROOT / "services" / "notification-service" / "app",
+    "inventory-service": PROJECT_ROOT / "services" / "inventory-service" / "app",
+    "review-service": PROJECT_ROOT / "services" / "review-service" / "app",
+    "promotion-service": PROJECT_ROOT / "services" / "promotion-service" / "app",
+    "shipping-service": PROJECT_ROOT / "services" / "shipping-service" / "app",
+    "wishlist-service": PROJECT_ROOT / "services" / "wishlist-service" / "app",
     "gateway": PROJECT_ROOT / "gateway" / "app",
 }
 

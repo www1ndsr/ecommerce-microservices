@@ -14,6 +14,11 @@ class Settings(BaseSettings):
     order_service_url: str = "http://order-service:8000"
     payment_service_url: str = "http://payment-service:8000"
     notification_service_url: str = "http://notification-service:8000"
+    inventory_service_url: str = "http://inventory-service:8000"
+    review_service_url: str = "http://review-service:8000"
+    promotion_service_url: str = "http://promotion-service:8000"
+    shipping_service_url: str = "http://shipping-service:8000"
+    wishlist_service_url: str = "http://wishlist-service:8000"
 
     upstream_timeout_seconds: float = Field(default=10.0, gt=0)
     rate_limit_requests: int = Field(default=120, ge=1)
@@ -30,6 +35,11 @@ class Settings(BaseSettings):
             "orders": self.order_service_url.rstrip("/"),
             "payments": self.payment_service_url.rstrip("/"),
             "notifications": self.notification_service_url.rstrip("/"),
+            "inventory": self.inventory_service_url.rstrip("/"),
+            "reviews": self.review_service_url.rstrip("/"),
+            "promotions": self.promotion_service_url.rstrip("/"),
+            "shipping": self.shipping_service_url.rstrip("/"),
+            "wishlist": self.wishlist_service_url.rstrip("/"),
         }
 
     @property

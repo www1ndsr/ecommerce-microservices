@@ -80,25 +80,13 @@ def test_product_changes_require_admin_and_validate_fields(
 
 
 @pytest.mark.unit
-def test_product_stock_reservation_and_release(service_client_factory):
+def test_stock_reservation_is_owned_by_inventory_service(service_client_factory):
     context = service_client_factory("product-service")
     product_id = insert_product(context, stock=3)
 
-    reserved = context.client.post(
+    response = context.client.post(
         f"/internal/products/{product_id}/reserve",
         json={"quantity": 2},
-    )
-    insufficient = context.client.post(
-        f"/internal/products/{product_id}/reserve",
-        json={"quantity": 2},
-    )
-    released = context.client.post(
-        f"/internal/products/{product_id}/release",
-        json={"quantity": 1},
     )
 
-    assert reserved.status_code == 200
-    assert reserved.json()["stock"] == 1
-    assert insufficient.status_code == 409
-    assert released.status_code == 200
-    assert released.json()["stock"] == 2
+    assert response.status_code == 404

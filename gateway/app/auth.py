@@ -20,6 +20,7 @@ def is_public_endpoint(method: str, path: str) -> bool:
         return True
     return method == "GET" and (
         path == "/api/products" or path.startswith("/api/products/")
+        or path == "/api/inventory" or path.startswith("/api/inventory/")
     )
 
 

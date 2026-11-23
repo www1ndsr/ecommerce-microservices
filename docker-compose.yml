@@ -22,6 +22,21 @@ services:
     image: mongo:7
   cart-db:
     image: redis:7
+  inventory-db:
+    image: postgres:16
+    environment: {POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: inventory}
+  review-db:
+    image: postgres:16
+    environment: {POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: reviews}
+  promotion-db:
+    image: postgres:16
+    environment: {POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: promotions}
+  shipping-db:
+    image: postgres:16
+    environment: {POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: shipping}
+  wishlist-db:
+    image: postgres:16
+    environment: {POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: wishlist}
 
   auth-service:
     build: ./services/auth-service
@@ -47,7 +62,8 @@ services:
     environment:
       REDIS_URL: redis://cart-db:6379/0
       PRODUCT_SERVICE_URL: http://product-service:8000
-    depends_on: [cart-db, product-service]
+      INVENTORY_SERVICE_URL: http://inventory-service:8000
+    depends_on: [cart-db, product-service, inventory-service]
 
   order-service:
     build: ./services/order-service
@@ -56,7 +72,8 @@ services:
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
       CART_SERVICE_URL: http://cart-service:8000
       PRODUCT_SERVICE_URL: http://product-service:8000
-    depends_on: [order-db, rabbitmq, cart-service, product-service]
+      INVENTORY_SERVICE_URL: http://inventory-service:8000
+    depends_on: [order-db, rabbitmq, cart-service, product-service, inventory-service]
 
   payment-service:
     build: ./services/payment-service
@@ -73,6 +90,29 @@ services:
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
     depends_on: [notification-db, rabbitmq]
 
+  inventory-service:
+    build: ./services/inventory-service
+    environment: {DATABASE_URL: postgresql://app:app@inventory-db:5432/inventory}
+    depends_on: [inventory-db]
+  review-service:
+    build: ./services/review-service
+    environment: {DATABASE_URL: postgresql://app:app@review-db:5432/reviews}
+    depends_on: [review-db]
+  promotion-service:
+    build: ./services/promotion-service
+    environment: {DATABASE_URL: postgresql://app:app@promotion-db:5432/promotions}
+    depends_on: [promotion-db]
+  shipping-service:
+    build: ./services/shipping-service
+    environment:
+      DATABASE_URL: postgresql://app:app@shipping-db:5432/shipping
+      ORDER_SERVICE_URL: http://order-service:8000
+    depends_on: [shipping-db, order-service]
+  wishlist-service:
+    build: ./services/wishlist-service
+    environment: {DATABASE_URL: postgresql://app:app@wishlist-db:5432/wishlist}
+    depends_on: [wishlist-db]
+
   gateway:
     build: ./gateway
     ports: ["8000:8000"]
@@ -85,6 +125,11 @@ services:
       ORDER_SERVICE_URL: http://order-service:8000
       PAYMENT_SERVICE_URL: http://payment-service:8000
       NOTIFICATION_SERVICE_URL: http://notification-service:8000
+      INVENTORY_SERVICE_URL: http://inventory-service:8000
+      REVIEW_SERVICE_URL: http://review-service:8000
+      PROMOTION_SERVICE_URL: http://promotion-service:8000
+      SHIPPING_SERVICE_URL: http://shipping-service:8000
+      WISHLIST_SERVICE_URL: http://wishlist-service:8000
       UPSTREAM_TIMEOUT_SECONDS: ${GATEWAY_UPSTREAM_TIMEOUT_SECONDS:-10}
       RATE_LIMIT_REQUESTS: ${GATEWAY_RATE_LIMIT_REQUESTS:-120}
       RATE_LIMIT_WINDOW_SECONDS: ${GATEWAY_RATE_LIMIT_WINDOW_SECONDS:-60}
@@ -97,6 +142,11 @@ services:
       - order-service
       - payment-service
       - notification-service
+      - inventory-service
+      - review-service
+      - promotion-service
+      - shipping-service
+      - wishlist-service
     healthcheck:
       test:
         - CMD

@@ -33,7 +33,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   };
 
   return (
-    <div className="mx-auto grid min-h-[65vh] max-w-5xl overflow-hidden rounded-[2rem] border border-slate-100 bg-white shadow-card lg:grid-cols-[1fr_0.85fr]">
+    <div className="page-enter mx-auto grid min-h-[65vh] max-w-5xl overflow-hidden rounded-[2rem] border border-[#e8ebe5] bg-white shadow-card lg:grid-cols-[1fr_0.85fr]">
       <div className="p-7 sm:p-10 lg:p-12">
         <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand-600">
           Nord account
@@ -96,8 +96,8 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       </div>
 
       <div className="relative hidden overflow-hidden bg-ink p-10 text-white lg:flex lg:flex-col lg:justify-between">
-        <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-brand-500/30 blur-3xl" />
-        <div className="absolute -bottom-24 -left-20 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl" />
+        <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-emerald-500/30 blur-3xl" />
+        <div className="absolute -bottom-24 -left-20 h-72 w-72 rounded-full bg-lime-300/15 blur-3xl" />
         <div className="relative">
           <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white/10 text-lg font-bold">
             N

@@ -2,7 +2,7 @@ import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Depends, HTTPException, Header, Query
-from sqlalchemy import text, update
+from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -96,31 +96,6 @@ def update_product(product_id: int, data: schemas.ProductIn, db: Session = Depen
 def delete_product(product_id: int, db: Session = Depends(get_db)):
     db.delete(get_or_404(db, product_id))
     db.commit()
-
-
-# --- внутренние endpoint'ы для order-service ---
-
-@app.post("/internal/products/{product_id}/reserve", response_model=schemas.ProductOut)
-def reserve(product_id: int, data: schemas.StockChange, db: Session = Depends(get_db)):
-    get_or_404(db, product_id)
-    res = db.execute(
-        update(models.Product)
-        .where(models.Product.id == product_id, models.Product.stock >= data.quantity)
-        .values(stock=models.Product.stock - data.quantity))
-    db.commit()
-    if res.rowcount == 0:
-        raise HTTPException(409, "Not enough stock")
-    log.info(f"Reserved {data.quantity} of product {product_id}")
-    return db.get(models.Product, product_id)
-
-
-@app.post("/internal/products/{product_id}/release", response_model=schemas.ProductOut)
-def release(product_id: int, data: schemas.StockChange, db: Session = Depends(get_db)):
-    p = get_or_404(db, product_id)
-    p.stock += data.quantity
-    db.commit()
-    log.info(f"Released {data.quantity} of product {product_id}")
-    return p
 
 
 @app.get("/health")

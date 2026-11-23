@@ -75,7 +75,7 @@ export function OrderDetailsPage() {
   if (!order) return null;
 
   return (
-    <div>
+    <div className="page-enter">
       <Link to="/orders" className="text-sm font-semibold text-brand-700 hover:text-brand-600">
         ← Все заказы
       </Link>
@@ -91,7 +91,7 @@ export function OrderDetailsPage() {
       {error && <div className="mt-5"><ErrorNotice message={error} /></div>}
 
       <div className="mt-7 grid gap-6 lg:grid-cols-[1fr_330px]">
-        <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-card sm:p-7">
+        <section className="rounded-3xl border border-[#e8ebe5] bg-white p-5 shadow-card sm:p-7">
           <h2 className="text-lg font-semibold text-ink">Состав заказа</h2>
           <div className="mt-4 divide-y divide-slate-100">
             {order.items.map((item, index) => (
@@ -112,7 +112,7 @@ export function OrderDetailsPage() {
           </div>
         </section>
 
-        <aside className="h-fit rounded-3xl border border-slate-100 bg-white p-6 shadow-card">
+        <aside className="h-fit rounded-3xl border border-[#e8ebe5] bg-white p-6 shadow-card lg:sticky lg:top-28">
           <h2 className="text-lg font-semibold text-ink">Оплата</h2>
           {payment ? (
             <div className="mt-4 space-y-3">
