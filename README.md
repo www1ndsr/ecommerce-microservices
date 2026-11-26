@@ -5,11 +5,10 @@ React-интерфейсом. Документ описывает фактиче
 реализации, а не функции, которые могли бы появиться в будущем.
 
 > **Важно о данных и секретах.** Compose-конфигурация предназначена для
-> локальной разработки: в ней нет объявленных именованных томов, а некоторые
-> учетные данные имеют демонстрационные значения. Не используйте эту конфигурацию
-> как production-развертывание. Не запускайте `docker compose down -v`, если
-> важны данные. Перед демонстрацией задайте собственный `JWT_SECRET`; не
-> публикуйте его и не вставляйте секреты в этот README.
+> локальной разработки. Перед первым запуском скопируйте `.env.example` в `.env`
+> и задайте секретные значения; `.env` исключен из Git. Не используйте эту
+> конфигурацию как production-развертывание. `docker compose down -v` удаляет
+> данные контейнеров/томов; не выполняйте его, если важны данные.
 
 ## 1. О проекте
 
@@ -249,9 +248,8 @@ JWT. Хранит учетную запись и роль, но не профи�
 возвращает JWT. Frontend сохраняет его в session storage и отправляет как
 `Authorization: Bearer <JWT>` при последующих запросах.
 
-> В Compose есть значение JWT по умолчанию для локального запуска. Оно не
-> подходит для публичной демонстрации: задайте случайный `JWT_SECRET` и
-> используйте одно и то же значение для Auth Service и Gateway.
+> Compose требует `JWT_SECRET` из корневого `.env` и передает одно значение
+> Auth Service и Gateway. Не публикуйте `.env`.
 
 ### 4.2 User Service
 
@@ -725,16 +723,12 @@ sequenceDiagram
 
 Compose публикует:
 
-- AMQP: `localhost:5672`;
 - Management UI: `http://localhost:15672`.
 
-В Compose не задаются отдельные RabbitMQ user/password: внутренний AMQP URL
-сервисов использует стандартные демонстрационные учетные данные `guest:guest`.
-Не считайте их production-секретом и не открывайте такой доступ в публичную
-сеть. HTTP-страница Management UI отвечала `200`; вход в UI отдельно не
-проверялся. В интерфейсе можно изучать exchanges, queues, bindings, consumers,
-соединения и rates сообщений. Не удаляйте очереди в интерфейсе, если не
-понимаете последствий.
+AMQP-порт остается доступен только внутри Compose-сети. RabbitMQ user/password
+задаются в корневом `.env` (`RABBITMQ_USER`, `RABBITMQ_PASS`). В интерфейсе
+можно изучать exchanges, queues, bindings, consumers, соединения и rates
+сообщений. Не удаляйте очереди в интерфейсе, если не понимаете последствий.
 
 ## 9. Frontend
 
@@ -791,7 +785,7 @@ Notification API; админская форма управления товар�
 
 ### Запуск frontend отдельно
 
-Нужны Node.js 22 (Dockerfile использует `node:22-alpine`) и npm. В PowerShell:
+Нужны Node.js 20+ и npm. В PowerShell:
 
 ```powershell
 Set-Location .\frontend
@@ -800,7 +794,9 @@ npm ci
 npm run dev
 ```
 
-`.env.example` задает `VITE_API_URL=http://localhost:8000`. Для production build:
+Для независимого запуска `.env.example` задает `VITE_API_URL=http://localhost:8000`.
+Контейнерная production-сборка использует относительный `/api`, проксируемый
+nginx в Gateway. Для production build:
 
 ```powershell
 npm run build
@@ -854,10 +850,9 @@ Swagger Gateway и OpenAPI проверены по HTTP (`200`). FastAPI-сер�
 
 ### Задать секрет для локального запуска
 
-Compose передает один и тот же `JWT_SECRET` в Auth Service и Gateway. Не
-оставляйте демонстрационный fallback для публичной демонстрации. Следующий
-PowerShell-код создает случайное значение только в текущем окне PowerShell и
-не печатает его:
+Создайте локальный `.env` на основе `.env.example` и задайте новые случайные
+значения для `POSTGRES_PASSWORD`, `JWT_SECRET` и `RABBITMQ_PASS`. PowerShell-код
+ниже генерирует случайный секрет для JWT:
 
 ```powershell
 $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
@@ -868,16 +863,14 @@ $rng.Dispose()
 [Array]::Clear($bytes, 0, $bytes.Length)
 ```
 
-Выполните запуск в том же окне. При новом окне сгенерируйте тот же постоянный
-секрет из своего защищенного хранилища или задайте значение локально. Если
-используете корневой `.env`, не добавляйте его в Git. В текущем репозитории нет
-корневого `.gitignore`; внимательно проверяйте `git status` и не публикуйте
-секреты.
+Сохраните секрет в корневом `.env`, а не только в текущем окне PowerShell.
+Корневой `.gitignore` исключает `.env`; никогда не добавляйте его в Git.
 
 `CORS_ORIGINS`, `GATEWAY_UPSTREAM_TIMEOUT_SECONDS`,
 `GATEWAY_RATE_LIMIT_REQUESTS` и `GATEWAY_RATE_LIMIT_WINDOW_SECONDS` имеют
-значения по умолчанию в Compose. Переменная `VITE_API_URL` в Compose задается
-для браузера как `http://localhost:8000`.
+значения по умолчанию в Compose. Контейнерный frontend направляет запросы
+относительно `/api` через nginx к Gateway; standalone frontend может использовать
+`VITE_API_URL=http://localhost:8000`.
 
 ### Запуск и повседневные команды
 
@@ -916,7 +909,7 @@ Compose healthcheck явно задан для Gateway, но не для каж�
 
 | Компонент | Адрес внутри Docker-сети | Адрес с компьютера |
 |---|---|---|
-| Frontend | `frontend:3000` | `http://localhost:3000` |
+| Frontend | `frontend:8080` | `http://localhost:3000` |
 | API Gateway | `gateway:8000` | `http://localhost:8000` |
 | Swagger Gateway | `gateway:8000/docs` | `http://localhost:8000/docs` |
 | ReDoc Gateway | `gateway:8000/redoc` | `http://localhost:8000/redoc` |
@@ -927,7 +920,7 @@ Compose healthcheck явно задан для Gateway, но не для каж�
 | Order Service | `order-service:8000` | Не опубликован |
 | Payment Service | `payment-service:8000` | Не опубликован |
 | Notification Service | `notification-service:8000` | Не опубликован |
-| RabbitMQ AMQP | `rabbitmq:5672` | `localhost:5672` |
+| RabbitMQ AMQP | `rabbitmq:5672` | Не опубликован |
 | RabbitMQ Management UI | `rabbitmq:15672` | `http://localhost:15672` |
 | PostgreSQL, MongoDB, Redis | Compose DNS-имена из `docker-compose.yml` | Порты host не опубликованы |
 

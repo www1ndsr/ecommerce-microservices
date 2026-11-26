@@ -1,123 +1,299 @@
 services:
   rabbitmq:
-    image: rabbitmq:3-management
-    ports: ["5672:5672", "15672:15672"]
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    ports:
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
 
   auth-db:
     image: postgres:16
-    environment: {POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: auth}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: auth
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
   user-db:
     image: postgres:16
-    environment: {POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: users}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: users
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
   product-db:
     image: postgres:16
-    environment: {POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: products}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: products
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
   order-db:
     image: postgres:16
-    environment: {POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: orders}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: orders
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
   payment-db:
     image: postgres:16
-    environment: {POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: payments}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: payments
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
   notification-db:
     image: mongo:7
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
   cart-db:
     image: redis:7
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
   inventory-db:
     image: postgres:16
-    environment: {POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: inventory}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: inventory
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
   review-db:
     image: postgres:16
-    environment: {POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: reviews}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: reviews
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
   promotion-db:
     image: postgres:16
-    environment: {POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: promotions}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: promotions
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
   shipping-db:
     image: postgres:16
-    environment: {POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: shipping}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: shipping
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
   wishlist-db:
     image: postgres:16
-    environment: {POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: wishlist}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: wishlist
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
 
   auth-service:
     build: ./services/auth-service
+    image: shop/auth-service:1.0
     environment:
-      DATABASE_URL: postgresql://app:app@auth-db:5432/auth
-      JWT_SECRET: ${JWT_SECRET:-super-secret-key-change-me}
-    depends_on: [auth-db]
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@auth-db:5432/auth
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      auth-db:
+        condition: service_healthy
 
   product-service:
     build: ./services/product-service
+    image: shop/product-service:1.0
     environment:
-      DATABASE_URL: postgresql://app:app@product-db:5432/products
-    depends_on: [product-db]
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@product-db:5432/products
+    depends_on:
+      product-db:
+        condition: service_healthy
 
   user-service:
     build: ./services/user-service
+    image: shop/user-service:1.0
     environment:
-      DATABASE_URL: postgresql://app:app@user-db:5432/users
-    depends_on: [user-db]
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@user-db:5432/users
+    depends_on:
+      user-db:
+        condition: service_healthy
 
   cart-service:
     build: ./services/cart-service
+    image: shop/cart-service:1.0
     environment:
       REDIS_URL: redis://cart-db:6379/0
       PRODUCT_SERVICE_URL: http://product-service:8000
       INVENTORY_SERVICE_URL: http://inventory-service:8000
-    depends_on: [cart-db, product-service, inventory-service]
+    depends_on:
+      cart-db:
+        condition: service_healthy
+      product-service:
+        condition: service_started
+      inventory-service:
+        condition: service_started
 
   order-service:
     build: ./services/order-service
+    image: shop/order-service:1.0
     environment:
-      DATABASE_URL: postgresql://app:app@order-db:5432/orders
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@order-db:5432/orders
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672/
       CART_SERVICE_URL: http://cart-service:8000
       PRODUCT_SERVICE_URL: http://product-service:8000
       INVENTORY_SERVICE_URL: http://inventory-service:8000
-    depends_on: [order-db, rabbitmq, cart-service, product-service, inventory-service]
+    depends_on:
+      order-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      cart-service:
+        condition: service_started
+      product-service:
+        condition: service_started
+      inventory-service:
+        condition: service_started
 
   payment-service:
     build: ./services/payment-service
+    image: shop/payment-service:1.0
     environment:
-      DATABASE_URL: postgresql://app:app@payment-db:5432/payments
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
-    depends_on: [payment-db, rabbitmq]
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@payment-db:5432/payments
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672/
+    depends_on:
+      payment-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   notification-service:
     build: ./services/notification-service
+    image: shop/notification-service:1.0
     environment:
       MONGODB_URL: mongodb://notification-db:27017
       MONGODB_DATABASE: notifications
-      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
-    depends_on: [notification-db, rabbitmq]
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672/
+    depends_on:
+      notification-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
 
   inventory-service:
     build: ./services/inventory-service
-    environment: {DATABASE_URL: postgresql://app:app@inventory-db:5432/inventory}
-    depends_on: [inventory-db]
+    image: shop/inventory-service:1.0
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@inventory-db:5432/inventory
+    depends_on:
+      inventory-db:
+        condition: service_healthy
+
   review-service:
     build: ./services/review-service
-    environment: {DATABASE_URL: postgresql://app:app@review-db:5432/reviews}
-    depends_on: [review-db]
+    image: shop/review-service:1.0
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@review-db:5432/reviews
+    depends_on:
+      review-db:
+        condition: service_healthy
+
   promotion-service:
     build: ./services/promotion-service
-    environment: {DATABASE_URL: postgresql://app:app@promotion-db:5432/promotions}
-    depends_on: [promotion-db]
+    image: shop/promotion-service:1.0
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@promotion-db:5432/promotions
+    depends_on:
+      promotion-db:
+        condition: service_healthy
+
   shipping-service:
     build: ./services/shipping-service
+    image: shop/shipping-service:1.0
     environment:
-      DATABASE_URL: postgresql://app:app@shipping-db:5432/shipping
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@shipping-db:5432/shipping
       ORDER_SERVICE_URL: http://order-service:8000
-    depends_on: [shipping-db, order-service]
+    depends_on:
+      shipping-db:
+        condition: service_healthy
+      order-service:
+        condition: service_started
+
   wishlist-service:
     build: ./services/wishlist-service
-    environment: {DATABASE_URL: postgresql://app:app@wishlist-db:5432/wishlist}
-    depends_on: [wishlist-db]
+    image: shop/wishlist-service:1.0
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@wishlist-db:5432/wishlist
+    depends_on:
+      wishlist-db:
+        condition: service_healthy
 
   gateway:
     build: ./gateway
-    ports: ["8000:8000"]
+    image: shop/gateway:1.0
+    ports:
+      - "8000:8000"
     environment:
-      JWT_SECRET: ${JWT_SECRET:-super-secret-key-change-me}
+      JWT_SECRET: ${JWT_SECRET}
       AUTH_SERVICE_URL: http://auth-service:8000
       USER_SERVICE_URL: http://user-service:8000
       PRODUCT_SERVICE_URL: http://product-service:8000
@@ -160,8 +336,8 @@ services:
 
   frontend:
     build: ./frontend
-    ports: ["3000:3000"]
-    environment:
-      VITE_API_URL: http://localhost:8000
+    image: shop/frontend:1.0
+    ports:
+      - "3000:8080"
     depends_on:
       - gateway

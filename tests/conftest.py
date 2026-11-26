@@ -18,7 +18,7 @@ _TEST_ENV = {
     "REDIS_URL": "redis://127.0.0.1:1/15",
     "PRODUCT_SERVICE_URL": "http://127.0.0.1:1",
     "CART_SERVICE_URL": "http://127.0.0.1:1",
-    "RABBITMQ_URL": "amqp://guest:guest@127.0.0.1:1/",
+    "RABBITMQ_URL": "amqp://127.0.0.1:1/",
     "MONGODB_URL": "mongodb://127.0.0.1:1/?serverSelectionTimeoutMS=100",
     "MONGODB_DATABASE": "unit_test_only",
     "AUTH_SERVICE_URL": "http://127.0.0.1:1",

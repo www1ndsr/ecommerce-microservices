@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cart-db
+  namespace: shop
+  labels:
+    app: cart-db
+    app.kubernetes.io/part-of: shop
+    app.kubernetes.io/component: infrastructure
+spec:
+  clusterIP: None
+  selector:
+    app: cart-db
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: cart-db
+  namespace: shop
+  labels:
+    app: cart-db
+    app.kubernetes.io/part-of: shop
+    app.kubernetes.io/component: infrastructure
+spec:
+  serviceName: cart-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cart-db
+  template:
+    metadata:
+      labels:
+        app: cart-db
+        app.kubernetes.io/part-of: shop
+        app.kubernetes.io/component: infrastructure
+    spec:
+      containers:
+        - name: cart-db
+          image: redis:7
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: redis
+              containerPort: 6379
+              protocol: TCP
+          command: ["redis-server", "--appendonly", "yes"]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 384Mi
+          startupProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 60
+          livenessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 1Gi
