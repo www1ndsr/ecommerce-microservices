@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [lab-3, main]
+  pull_request:
+    branches: [lab-3, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Tests and Compose validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: tests/requirements.txt
+
+      - name: Install test dependencies
+        run: python -m pip install -r tests/requirements.txt
+
+      - name: Run unit tests
+        run: python -m pytest -q
+
+      - name: Validate Docker Compose configuration
+        env:
+          POSTGRES_USER: ci_user
+          POSTGRES_PASSWORD: ci_only_password
+          JWT_SECRET: ci_only_test_secret
+          RABBITMQ_USER: ci_user
+          RABBITMQ_PASS: ci_only_password
+        run: docker compose config --quiet
