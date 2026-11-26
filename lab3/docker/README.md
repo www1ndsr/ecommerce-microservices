@@ -10,3 +10,30 @@ gateway и multi-stage frontend. В корневом `docker-compose.yml` каж
 Minikube собираются через `minikube image build`, чтобы помещать их
 непосредственно в containerd. На кластере с Docker runtime допустима сборка
 через `minikube docker-env` и `docker compose build`.
+
+## Дополнение: устройство Docker-сборки
+
+Backend-образы основаны на `python:3.12-slim`. Сначала копируется файл
+зависимостей и устанавливаются пакеты, затем добавляется исходный код — так
+изменения приложения не требуют повторно загружать неизменившиеся зависимости.
+Backend-процессы работают от непривилегированного пользователя `appuser`.
+Frontend собирается в отдельной Node.js-стадии, а готовые статические файлы
+попадают в непривилегированный Nginx-образ.
+
+Файлы `.dockerignore` исключают из build context локальные виртуальные среды,
+кэш, `.git`, тесты и локальные env-файлы. Это сокращает контекст сборки и не
+передаёт локальные секреты в Docker build. Смотри [Dockerfile сервисов](../../services/),
+[Dockerfile Gateway](../../gateway/Dockerfile),
+[Dockerfile frontend](../../frontend/Dockerfile) и соответствующие файлы
+`.dockerignore` в каталогах приложений.
+
+Корневой [`docker-compose.yml`](../../docker-compose.yml) связывает сборку
+приложений с тегами `shop/<service>:1.0` и задаёт адреса зависимостей. Для
+локального Compose создайте `.env` на основе [`.env.example`](../../.env.example)
+и заполните нужные значения. `.env` не хранится в Git; не помещайте реальные
+пароли и JWT-ключи в Dockerfile, Compose-файл или Kubernetes-манифесты.
+
+Compose и Minikube одновременно потребляют много памяти. Перед запуском
+Minikube остановите Compose-компоненты без удаления данных командой
+`docker compose stop`; чтобы вернуться, выполните `minikube stop`, затем
+`docker compose start`.

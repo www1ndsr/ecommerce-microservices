@@ -55,29 +55,29 @@ spec:
                   key: MONGODB_DATABASE
           resources:
             requests:
-              cpu: 50m
+              cpu: 250m
               memory: 128Mi
             limits:
-              cpu: 300m
+              cpu: "1"
               memory: 384Mi
           startupProbe:
             exec:
               command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
             periodSeconds: 5
-            timeoutSeconds: 3
+            timeoutSeconds: 20
             failureThreshold: 60
           livenessProbe:
             exec:
               command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
             initialDelaySeconds: 20
             periodSeconds: 10
-            timeoutSeconds: 3
+            timeoutSeconds: 20
             failureThreshold: 3
           readinessProbe:
             exec:
               command: ["mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
             periodSeconds: 10
-            timeoutSeconds: 3
+            timeoutSeconds: 20
             failureThreshold: 3
           volumeMounts:
             - name: data

@@ -1,3 +1,4 @@
+import os
 import contextvars
 import json
 import logging
@@ -36,7 +37,7 @@ def setup(app, service: str):
     handler.setFormatter(JsonFormatter(service))
     root = logging.getLogger()
     root.handlers = [handler]
-    root.setLevel(logging.INFO)
+    root.setLevel(os.getenv("LOG_LEVEL", "INFO").upper())
     log = logging.getLogger(service)
 
     def write(level: str, request_id: str, message: str, **fields):

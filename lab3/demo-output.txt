@@ -1,0 +1,333 @@
+Демонстрация Lab 3 (Kubernetes, Minikube)
+
+=== Pod status ===
+> Invoke-K @('get','pods','-n','shop')
+NAME                                    READY   STATUS    RESTARTS      AGE
+auth-db-0                               1/1     Running   1 (52m ago)   28h
+auth-service-5d86d4b7bb-jb4l9           1/1     Running   0             8m22s
+cart-db-0                               1/1     Running   1 (52m ago)   28h
+cart-service-565d47c5d4-kvhgj           1/1     Running   0             7m34s
+frontend-5bccc94cb7-bwfzm               1/1     Running   1 (52m ago)   27h
+gateway-7c46684688-r4b2l                1/1     Running   0             4m47s
+gateway-7c46684688-rcmgd                1/1     Running   0             4m31s
+inventory-db-0                          1/1     Running   1 (52m ago)   28h
+inventory-service-559f8fd4dc-qjwlc      1/1     Running   0             6m9s
+notification-db-0                       1/1     Running   0             32m
+notification-service-56b7c95f44-jvwh5   1/1     Running   0             6m27s
+order-db-0                              1/1     Running   1 (52m ago)   28h
+order-service-7cb688dbd7-4wpbg          1/1     Running   0             7m16s
+order-service-7cb688dbd7-6jdvp          1/1     Running   0             7m1s
+payment-db-0                            1/1     Running   1 (52m ago)   28h
+payment-service-5c7884f867-g57r5        1/1     Running   0             6m44s
+product-db-0                            1/1     Running   1 (52m ago)   28h
+product-service-6657d94cc9-vcm5l        1/1     Running   0             7m51s
+promotion-db-0                          1/1     Running   1 (52m ago)   28h
+promotion-service-669f789f66-cnwss      1/1     Running   0             5m38s
+rabbitmq-0                              1/1     Running   0             38m
+review-db-0                             1/1     Running   1 (52m ago)   28h
+review-service-5b58964488-kpcnt         1/1     Running   0             5m54s
+shipping-db-0                           1/1     Running   1 (52m ago)   28h
+shipping-service-b76c6f7f8-mhbbf        1/1     Running   0             5m21s
+user-db-0                               1/1     Running   1 (52m ago)   28h
+user-service-5d95669f79-5lwdk           1/1     Running   0             8m7s
+wishlist-db-0                           1/1     Running   1 (52m ago)   28h
+wishlist-service-6d6b97c6c5-ktrp9       1/1     Running   0             5m3s
+
+=== Services ===
+> Invoke-K @('get','services','-n','shop')
+NAME                   TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)              AGE
+auth-db                ClusterIP   None             <none>        5432/TCP             28h
+auth-service           ClusterIP   10.105.194.238   <none>        8000/TCP             27h
+cart-db                ClusterIP   None             <none>        6379/TCP             28h
+cart-service           ClusterIP   10.99.17.205     <none>        8000/TCP             27h
+frontend               NodePort    10.104.210.115   <none>        8080:30080/TCP       27h
+gateway                NodePort    10.97.108.78     <none>        8000:30000/TCP       27h
+inventory-db           ClusterIP   None             <none>        5432/TCP             28h
+inventory-service      ClusterIP   10.109.107.158   <none>        8000/TCP             27h
+notification-db        ClusterIP   None             <none>        27017/TCP            28h
+notification-service   ClusterIP   10.100.115.35    <none>        8000/TCP             27h
+order-db               ClusterIP   None             <none>        5432/TCP             28h
+order-service          ClusterIP   10.103.205.115   <none>        8000/TCP             27h
+payment-db             ClusterIP   None             <none>        5432/TCP             28h
+payment-service        ClusterIP   10.99.200.104    <none>        8000/TCP             27h
+product-db             ClusterIP   None             <none>        5432/TCP             28h
+product-service        ClusterIP   10.100.201.187   <none>        8000/TCP             27h
+promotion-db           ClusterIP   None             <none>        5432/TCP             28h
+promotion-service      ClusterIP   10.96.144.215    <none>        8000/TCP             27h
+rabbitmq               ClusterIP   None             <none>        5672/TCP,15672/TCP   28h
+review-db              ClusterIP   None             <none>        5432/TCP             28h
+review-service         ClusterIP   10.99.1.71       <none>        8000/TCP             27h
+shipping-db            ClusterIP   None             <none>        5432/TCP             28h
+shipping-service       ClusterIP   10.98.251.100    <none>        8000/TCP             27h
+user-db                ClusterIP   None             <none>        5432/TCP             28h
+user-service           ClusterIP   10.104.150.235   <none>        8000/TCP             27h
+wishlist-db            ClusterIP   None             <none>        5432/TCP             28h
+wishlist-service       ClusterIP   10.96.116.28     <none>        8000/TCP             27h
+
+=== Deployments ===
+> Invoke-K @('get','deployments','-n','shop')
+NAME                   READY   UP-TO-DATE   AVAILABLE   AGE
+auth-service           1/1     1            1           27h
+cart-service           1/1     1            1           27h
+frontend               1/1     1            1           27h
+gateway                2/2     2            2           27h
+inventory-service      1/1     1            1           27h
+notification-service   1/1     1            1           27h
+order-service          2/2     2            2           27h
+payment-service        1/1     1            1           27h
+product-service        1/1     1            1           27h
+promotion-service      1/1     1            1           27h
+review-service         1/1     1            1           27h
+shipping-service       1/1     1            1           27h
+user-service           1/1     1            1           27h
+wishlist-service       1/1     1            1           27h
+
+=== Order Service logs ===
+> Invoke-K @('logs','deployment/order-service','-n','shop','--tail=20')
+Found 2 pods, using pod/order-service-7cb688dbd7-4wpbg
+{"timestamp": "2026-11-26T17:05:06", "service": "order-service", "level": "INFO", "request_id": "dd2ddcbd-c030-4a9f-9bd4-e9938209c156", "message": "GET /ready -> 200 (3ms)"}
+INFO:     10.244.0.1:41416 - "GET /ready HTTP/1.1" 200 OK
+INFO:     10.244.0.1:45218 - "GET /ready HTTP/1.1" 200 OK
+{"timestamp": "2026-11-26T17:05:11", "service": "order-service", "level": "INFO", "request_id": "51441f9e-23e5-474e-9ef2-b49ca15bfa61", "message": "GET /ready -> 200 (2ms)"}
+{"timestamp": "2026-11-26T17:05:13", "service": "order-service", "level": "INFO", "request_id": "383d3baa-1f3d-411c-a799-71b33cde4b6b", "message": "GET /health -> 200 (0ms)"}
+INFO:     10.244.0.1:45222 - "GET /health HTTP/1.1" 200 OK
+{"timestamp": "2026-11-26T17:05:16", "service": "order-service", "level": "INFO", "request_id": "83322cd6-d00e-4b1e-8499-98862193b065", "message": "GET /ready -> 200 (3ms)"}
+INFO:     10.244.0.1:45228 - "GET /ready HTTP/1.1" 200 OK
+{"timestamp": "2026-11-26T17:05:21", "service": "order-service", "level": "INFO", "request_id": "2ed03f69-2223-43ad-9c82-c04d944c6a37", "message": "GET /ready -> 200 (2ms)"}
+INFO:     10.244.0.1:46620 - "GET /ready HTTP/1.1" 200 OK
+INFO:     10.244.0.1:46632 - "GET /health HTTP/1.1" 200 OK
+{"timestamp": "2026-11-26T17:05:23", "service": "order-service", "level": "INFO", "request_id": "ad2f58ae-8ed6-4107-9340-4a05789df10b", "message": "GET /health -> 200 (0ms)"}
+{"timestamp": "2026-11-26T17:05:26", "service": "order-service", "level": "INFO", "request_id": "508b3d6c-ad93-4854-8a5c-eee490a86220", "message": "GET /ready -> 200 (2ms)"}
+INFO:     10.244.0.1:46642 - "GET /ready HTTP/1.1" 200 OK
+INFO:     10.244.0.1:32808 - "GET /ready HTTP/1.1" 200 OK
+{"timestamp": "2026-11-26T17:05:31", "service": "order-service", "level": "INFO", "request_id": "441e99bc-4f18-4a08-ac37-bc6b4e91a1d4", "message": "GET /ready -> 200 (2ms)"}
+{"timestamp": "2026-11-26T17:05:33", "service": "order-service", "level": "INFO", "request_id": "5da06b06-0168-4a16-b64c-9561ac7ff624", "message": "GET /health -> 200 (1ms)"}
+INFO:     10.244.0.1:32816 - "GET /health HTTP/1.1" 200 OK
+INFO:     10.244.0.1:32820 - "GET /ready HTTP/1.1" 200 OK
+{"timestamp": "2026-11-26T17:05:36", "service": "order-service", "level": "INFO", "request_id": "11d951b6-3df5-48c9-a5e0-70740344b6b3", "message": "GET /ready -> 200 (2ms)"}
+
+=== API through Gateway: register, login, catalog, cart, order and payment status ===
+> $apiJob = Start-Job { kubectl port-forward -n shop svc/gateway 8000:8000 }
+    try {
+        Start-Sleep -Seconds 5
+        $body = @{ email=$state.Email; password=$state.Pass } | ConvertTo-Json -Compress
+        $registration = Invoke-WebRequest -Method Post -Uri 'http://localhost:8000/api/auth/register' -ContentType 'application/json' -Body $body -TimeoutSec 30
+        $login = Invoke-WebRequest -Method Post -Uri 'http://localhost:8000/api/auth/login' -ContentType 'application/json' -Body $body -TimeoutSec 30
+        $loginData = $login.Content | ConvertFrom-Json
+        $state.Token = $loginData.access_token
+        $headers = @{ Authorization=('Bearer '+$state.Token) }
+        $identity = Invoke-WebRequest -Uri 'http://localhost:8000/api/auth/verify' -Headers $headers -TimeoutSec 30
+        $state.UserId = ($identity.Content | ConvertFrom-Json).user_id
+        $catalog = Invoke-WebRequest -Uri 'http://localhost:8000/api/products?limit=10' -TimeoutSec 30
+        $cartBody = @{ product_id=1; quantity=1 } | ConvertTo-Json -Compress
+        $cart = Invoke-WebRequest -Method Post -Uri 'http://localhost:8000/api/cart/items' -Headers $headers -ContentType 'application/json' -Body $cartBody -TimeoutSec 30
+        $orderResponse = Invoke-WebRequest -Method Post -Uri 'http://localhost:8000/api/orders' -Headers $headers -TimeoutSec 30
+        $orderData = $orderResponse.Content | ConvertFrom-Json
+        $state.OrderId = $orderData.id; $state.OrderStatus = $orderData.status; $state.Total = $orderData.total
+        $orderReadCode = 0
+        for ($attempt=0; $attempt -lt 20 -and $state.OrderStatus -ne 'PAID'; $attempt++) {
+            Start-Sleep -Seconds 2
+            $orderRead = Invoke-WebRequest -Uri ('http://localhost:8000/api/orders/'+$state.OrderId) -Headers $headers -TimeoutSec 30
+            $orderReadCode = $orderRead.StatusCode
+            $orderData = $orderRead.Content | ConvertFrom-Json
+            $state.OrderStatus = $orderData.status; $state.Total = $orderData.total
+        }
+        if ($state.OrderStatus -ne 'PAID') { throw ('Expected PAID, received '+$state.OrderStatus) }
+        Write-Output ('Register HTTP '+$registration.StatusCode)
+        Write-Output ('Login HTTP '+$login.StatusCode)
+        Write-Output ('Catalog HTTP '+$catalog.StatusCode)
+        Write-Output ('Cart HTTP '+$cart.StatusCode)
+        Write-Output ('Create order HTTP '+$orderResponse.StatusCode)
+        Write-Output ('Order GET HTTP '+$orderReadCode+'; ID='+$state.OrderId+'; STATUS='+$state.OrderStatus+'; TOTAL='+$state.Total)
+    } finally {
+        Stop-Job $apiJob -ErrorAction SilentlyContinue
+        Remove-Job $apiJob -Force -ErrorAction SilentlyContinue
+    }
+Register HTTP 201
+Login HTTP 200
+Catalog HTTP 200
+Cart HTTP 200
+Create order HTTP 201
+Order GET HTTP 200; ID=2; STATUS=PAID; TOTAL=1299
+
+=== Scale Order Service to three replicas ===
+> Invoke-K @('scale','deployment/order-service','--replicas=3','-n','shop')
+    Invoke-K @('rollout','status','deployment/order-service','-n','shop','--timeout=300s')
+    Invoke-K @('get','pods','-n','shop','-l','app=order-service')
+deployment.apps/order-service scaled
+Waiting for deployment "order-service" rollout to finish: 2 out of 3 new replicas have been updated...
+Waiting for deployment "order-service" rollout to finish: 2 out of 3 new replicas have been updated...
+Waiting for deployment "order-service" rollout to finish: 2 of 3 updated replicas are available...
+deployment "order-service" successfully rolled out
+NAME                             READY   STATUS    RESTARTS   AGE
+order-service-7cb688dbd7-2dl45   1/1     Running   0          14s
+order-service-7cb688dbd7-4wpbg   1/1     Running   0          7m40s
+order-service-7cb688dbd7-6jdvp   1/1     Running   0          7m25s
+
+=== Ten GET requests distributed across all three Order Service pods ===
+> $podJson = Invoke-K @('get','pods','-n','shop','-l','app=order-service','-o','json')
+    $podData = ($podJson -join "`n") | ConvertFrom-Json
+    $podNames = @($podData.items | ForEach-Object { $_.metadata.name })
+    if ($podNames.Count -ne 3) { throw ('Expected three order pods, found '+$podNames.Count) }
+    $portBase = Get-Random -Minimum 16000 -Maximum 24000
+    $jobs = @()
+    try {
+        for ($index=0; $index -lt $podNames.Count; $index++) {
+            $portNumber = $portBase+$index
+            $jobs += Start-Job -ArgumentList $podNames[$index],$portNumber -ScriptBlock { param($podName,$localPort) kubectl port-forward -n shop ('pod/'+$podName) ($localPort.ToString()+':8000') }
+        }
+        Start-Sleep -Seconds 5
+        foreach ($job in $jobs) { if ($job.State -ne 'Running') { throw 'An Order Service port-forward did not start' } }
+        for ($requestNumber=0; $requestNumber -lt 10; $requestNumber++) {
+            $podIndex = $requestNumber % $podNames.Count; $portNumber = $portBase+$podIndex
+            $request = Invoke-WebRequest -Uri ('http://localhost:'+$portNumber+'/api/orders') -Headers @{ 'X-User-ID'=[string]$state.UserId } -TimeoutSec 30
+            Write-Output ('GET /api/orders #'+($requestNumber+1)+' -> HTTP '+$request.StatusCode+' via '+$podNames[$podIndex])
+        }
+        foreach ($podName in $podNames) { Write-Output ('Logs for '+$podName); Invoke-K @('logs',$podName,'-n','shop','--tail=5') }
+    } finally {
+        Stop-Job $jobs -ErrorAction SilentlyContinue
+        Remove-Job $jobs -Force -ErrorAction SilentlyContinue
+    }
+GET /api/orders #1 -> HTTP 200 via order-service-7cb688dbd7-2dl45
+GET /api/orders #2 -> HTTP 200 via order-service-7cb688dbd7-4wpbg
+GET /api/orders #3 -> HTTP 200 via order-service-7cb688dbd7-6jdvp
+GET /api/orders #4 -> HTTP 200 via order-service-7cb688dbd7-2dl45
+GET /api/orders #5 -> HTTP 200 via order-service-7cb688dbd7-4wpbg
+GET /api/orders #6 -> HTTP 200 via order-service-7cb688dbd7-6jdvp
+GET /api/orders #7 -> HTTP 200 via order-service-7cb688dbd7-2dl45
+GET /api/orders #8 -> HTTP 200 via order-service-7cb688dbd7-4wpbg
+GET /api/orders #9 -> HTTP 200 via order-service-7cb688dbd7-6jdvp
+GET /api/orders #10 -> HTTP 200 via order-service-7cb688dbd7-2dl45
+Logs for order-service-7cb688dbd7-2dl45
+INFO:     127.0.0.1:55006 - "GET /api/orders HTTP/1.1" 200 OK
+{"timestamp": "2026-11-26T17:06:08", "service": "order-service", "level": "INFO", "request_id": "af33a9a8-6a83-40ea-89a5-ea00f0494cb6", "message": "GET /api/orders -> 200 (4ms)"}
+INFO:     127.0.0.1:55042 - "GET /api/orders HTTP/1.1" 200 OK
+{"timestamp": "2026-11-26T17:06:08", "service": "order-service", "level": "INFO", "request_id": "2fb1a4cc-40c3-4fe9-b62a-800bc525f213", "message": "GET /api/orders -> 200 (4ms)"}
+INFO:     127.0.0.1:55074 - "GET /api/orders HTTP/1.1" 200 OK
+Logs for order-service-7cb688dbd7-4wpbg
+INFO:     127.0.0.1:54988 - "GET /api/orders HTTP/1.1" 200 OK
+{"timestamp": "2026-11-26T17:06:08", "service": "order-service", "level": "INFO", "request_id": "5172f218-2b91-4de9-bbfe-f421c2492c38", "message": "GET /api/orders -> 200 (4ms)"}
+INFO:     127.0.0.1:55012 - "GET /api/orders HTTP/1.1" 200 OK
+{"timestamp": "2026-11-26T17:06:08", "service": "order-service", "level": "INFO", "request_id": "4fc0c557-8fde-4d96-a1a2-b9fed87c957d", "message": "GET /api/orders -> 200 (3ms)"}
+INFO:     127.0.0.1:55054 - "GET /api/orders HTTP/1.1" 200 OK
+Logs for order-service-7cb688dbd7-6jdvp
+INFO:     127.0.0.1:54996 - "GET /api/orders HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55028 - "GET /api/orders HTTP/1.1" 200 OK
+{"timestamp": "2026-11-26T17:06:08", "service": "order-service", "level": "INFO", "request_id": "d6ffbeb8-c3f7-4dfe-9c91-6b9a8a221418", "message": "GET /api/orders -> 200 (4ms)"}
+{"timestamp": "2026-11-26T17:06:08", "service": "order-service", "level": "INFO", "request_id": "9049cd57-6357-436b-844e-04c22b7b5b07", "message": "GET /api/orders -> 200 (3ms)"}
+INFO:     127.0.0.1:55058 - "GET /api/orders HTTP/1.1" 200 OK
+
+=== Return Order Service to two replicas ===
+> Invoke-K @('scale','deployment/order-service','--replicas=2','-n','shop')
+    Invoke-K @('rollout','status','deployment/order-service','-n','shop','--timeout=300s')
+    Invoke-K @('get','pods','-n','shop','-l','app=order-service')
+deployment.apps/order-service scaled
+Waiting for deployment spec update to be observed...
+deployment "order-service" successfully rolled out
+NAME                             READY   STATUS        RESTARTS   AGE
+order-service-7cb688dbd7-2dl45   1/1     Terminating   0          21s
+order-service-7cb688dbd7-4wpbg   1/1     Running       0          7m47s
+order-service-7cb688dbd7-6jdvp   1/1     Running       0          7m32s
+
+=== Delete an Order Service pod and verify automatic replacement ===
+> Invoke-K @('get','pods','-n','shop','-l','app=order-service')
+    $podJson = Invoke-K @('get','pods','-n','shop','-l','app=order-service','-o','json')
+    $podData = ($podJson -join "`n") | ConvertFrom-Json
+    $oldPodName = $podData.items[0].metadata.name
+    Invoke-K @('delete','pod',$oldPodName,'-n','shop','--wait=true','--timeout=120s')
+    Invoke-K @('wait','--for=condition=Ready','pod','-l','app=order-service','-n','shop','--timeout=300s')
+    Invoke-K @('get','pods','-n','shop','-l','app=order-service','-o','wide')
+NAME                             READY   STATUS        RESTARTS   AGE
+order-service-7cb688dbd7-2dl45   1/1     Terminating   0          22s
+order-service-7cb688dbd7-4wpbg   1/1     Running       0          7m48s
+order-service-7cb688dbd7-6jdvp   1/1     Running       0          7m33s
+pod "order-service-7cb688dbd7-2dl45" deleted from shop namespace
+pod/order-service-7cb688dbd7-4wpbg condition met
+pod/order-service-7cb688dbd7-6jdvp condition met
+NAME                             READY   STATUS    RESTARTS   AGE     IP            NODE       NOMINATED NODE   READINESS GATES
+order-service-7cb688dbd7-4wpbg   1/1     Running   0          7m50s   10.244.0.40   minikube   <none>           <none>
+order-service-7cb688dbd7-6jdvp   1/1     Running   0          7m35s   10.244.0.41   minikube   <none>           <none>
+
+=== Repeat API request after pod replacement ===
+> $apiJob = Start-Job { kubectl port-forward -n shop svc/gateway 8000:8000 }
+    try { Start-Sleep -Seconds 5; $response = Invoke-WebRequest -Uri 'http://localhost:8000/api/products' -TimeoutSec 30; Write-Output ('GET /api/products -> HTTP '+$response.StatusCode) }
+    finally { Stop-Job $apiJob -ErrorAction SilentlyContinue; Remove-Job $apiJob -Force -ErrorAction SilentlyContinue }
+GET /api/products -> HTTP 200
+
+=== Final cluster state ===
+> Invoke-K @('get','pods,svc,deploy','-n','shop')
+NAME                                        READY   STATUS    RESTARTS      AGE
+pod/auth-db-0                               1/1     Running   1 (53m ago)   28h
+pod/auth-service-5d86d4b7bb-jb4l9           1/1     Running   0             9m2s
+pod/cart-db-0                               1/1     Running   1 (53m ago)   28h
+pod/cart-service-565d47c5d4-kvhgj           1/1     Running   0             8m14s
+pod/frontend-5bccc94cb7-bwfzm               1/1     Running   1 (53m ago)   27h
+pod/gateway-7c46684688-r4b2l                1/1     Running   0             5m27s
+pod/gateway-7c46684688-rcmgd                1/1     Running   0             5m11s
+pod/inventory-db-0                          1/1     Running   1 (53m ago)   28h
+pod/inventory-service-559f8fd4dc-qjwlc      1/1     Running   0             6m49s
+pod/notification-db-0                       1/1     Running   0             33m
+pod/notification-service-56b7c95f44-jvwh5   1/1     Running   0             7m7s
+pod/order-db-0                              1/1     Running   1 (53m ago)   28h
+pod/order-service-7cb688dbd7-4wpbg          1/1     Running   0             7m56s
+pod/order-service-7cb688dbd7-6jdvp          1/1     Running   0             7m41s
+pod/payment-db-0                            1/1     Running   1 (53m ago)   28h
+pod/payment-service-5c7884f867-g57r5        1/1     Running   0             7m24s
+pod/product-db-0                            1/1     Running   1 (53m ago)   28h
+pod/product-service-6657d94cc9-vcm5l        1/1     Running   0             8m31s
+pod/promotion-db-0                          1/1     Running   1 (53m ago)   28h
+pod/promotion-service-669f789f66-cnwss      1/1     Running   0             6m18s
+pod/rabbitmq-0                              1/1     Running   0             39m
+pod/review-db-0                             1/1     Running   1 (53m ago)   28h
+pod/review-service-5b58964488-kpcnt         1/1     Running   0             6m34s
+pod/shipping-db-0                           1/1     Running   1 (53m ago)   28h
+pod/shipping-service-b76c6f7f8-mhbbf        1/1     Running   0             6m1s
+pod/user-db-0                               1/1     Running   1 (53m ago)   28h
+pod/user-service-5d95669f79-5lwdk           1/1     Running   0             8m47s
+pod/wishlist-db-0                           1/1     Running   1 (53m ago)   28h
+pod/wishlist-service-6d6b97c6c5-ktrp9       1/1     Running   0             5m43s
+
+NAME                           TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)              AGE
+service/auth-db                ClusterIP   None             <none>        5432/TCP             28h
+service/auth-service           ClusterIP   10.105.194.238   <none>        8000/TCP             27h
+service/cart-db                ClusterIP   None             <none>        6379/TCP             28h
+service/cart-service           ClusterIP   10.99.17.205     <none>        8000/TCP             27h
+service/frontend               NodePort    10.104.210.115   <none>        8080:30080/TCP       27h
+service/gateway                NodePort    10.97.108.78     <none>        8000:30000/TCP       27h
+service/inventory-db           ClusterIP   None             <none>        5432/TCP             28h
+service/inventory-service      ClusterIP   10.109.107.158   <none>        8000/TCP             27h
+service/notification-db        ClusterIP   None             <none>        27017/TCP            28h
+service/notification-service   ClusterIP   10.100.115.35    <none>        8000/TCP             27h
+service/order-db               ClusterIP   None             <none>        5432/TCP             28h
+service/order-service          ClusterIP   10.103.205.115   <none>        8000/TCP             27h
+service/payment-db             ClusterIP   None             <none>        5432/TCP             28h
+service/payment-service        ClusterIP   10.99.200.104    <none>        8000/TCP             27h
+service/product-db             ClusterIP   None             <none>        5432/TCP             28h
+service/product-service        ClusterIP   10.100.201.187   <none>        8000/TCP             27h
+service/promotion-db           ClusterIP   None             <none>        5432/TCP             28h
+service/promotion-service      ClusterIP   10.96.144.215    <none>        8000/TCP             27h
+service/rabbitmq               ClusterIP   None             <none>        5672/TCP,15672/TCP   28h
+service/review-db              ClusterIP   None             <none>        5432/TCP             28h
+service/review-service         ClusterIP   10.99.1.71       <none>        8000/TCP             27h
+service/shipping-db            ClusterIP   None             <none>        5432/TCP             28h
+service/shipping-service       ClusterIP   10.98.251.100    <none>        8000/TCP             27h
+service/user-db                ClusterIP   None             <none>        5432/TCP             28h
+service/user-service           ClusterIP   10.104.150.235   <none>        8000/TCP             27h
+service/wishlist-db            ClusterIP   None             <none>        5432/TCP             28h
+service/wishlist-service       ClusterIP   10.96.116.28     <none>        8000/TCP             27h
+
+NAME                                   READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/auth-service           1/1     1            1           27h
+deployment.apps/cart-service           1/1     1            1           27h
+deployment.apps/frontend               1/1     1            1           27h
+deployment.apps/gateway                2/2     2            2           27h
+deployment.apps/inventory-service      1/1     1            1           27h
+deployment.apps/notification-service   1/1     1            1           27h
+deployment.apps/order-service          2/2     2            2           27h
+deployment.apps/payment-service        1/1     1            1           27h
+deployment.apps/product-service        1/1     1            1           27h
+deployment.apps/promotion-service      1/1     1            1           27h
+deployment.apps/review-service         1/1     1            1           27h
+deployment.apps/shipping-service       1/1     1            1           27h
+deployment.apps/user-service           1/1     1            1           27h
+deployment.apps/wishlist-service       1/1     1            1           27h

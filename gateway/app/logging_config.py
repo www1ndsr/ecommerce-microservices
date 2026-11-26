@@ -1,3 +1,4 @@
+import os
 import contextvars
 import json
 import logging
@@ -29,7 +30,7 @@ def configure_logging():
     handler.setFormatter(JsonFormatter())
     root = logging.getLogger()
     root.handlers = [handler]
-    root.setLevel(logging.INFO)
+    root.setLevel(os.getenv("LOG_LEVEL", "INFO").upper())
 
 
 def log_request(request_id: str, method: str, endpoint: str,

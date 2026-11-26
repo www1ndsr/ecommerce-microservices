@@ -1,4 +1,4 @@
-import json, logging, time, uuid, contextvars
+import json, logging, os, time, uuid, contextvars
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -27,7 +27,7 @@ def setup(app, service):
     handler.setFormatter(JsonFormatter(service))
     root = logging.getLogger()
     root.handlers = [handler]
-    root.setLevel(logging.INFO)
+    root.setLevel(os.getenv("LOG_LEVEL", "INFO").upper())
     log = logging.getLogger(service)
 
     @app.middleware("http")

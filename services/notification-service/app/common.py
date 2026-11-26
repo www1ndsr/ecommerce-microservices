@@ -1,3 +1,4 @@
+import os
 import contextvars
 import json
 import logging
@@ -32,7 +33,7 @@ def setup(app, service):
     handler.setFormatter(JsonFormatter(service))
     root = logging.getLogger()
     root.handlers = [handler]
-    root.setLevel(logging.INFO)
+    root.setLevel(os.getenv("LOG_LEVEL", "INFO").upper())
     log = logging.getLogger(service)
 
     @app.middleware("http")
