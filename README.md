@@ -42,6 +42,29 @@ Inventory Service, а состояние заказа — Order Service. Это 
 | React Router | Маршруты страниц магазина. |
 | pytest и httpx | Автоматические изолированные API/unit-тесты backend и Gateway. |
 
+## CI/CD
+
+GitHub Actions workflow находится в `.github/workflows/ci.yml`. При push и
+pull request он запускает backend unit-тесты, собирает frontend, проверяет
+конфигурацию Docker Compose и собирает Docker-образы всех 14 приложений
+(12 backend-сервисов, Gateway и frontend). Для публикации образов в GitHub
+Container Registry (GHCR) дополнительных паролей не требуется: workflow
+использует встроенный `GITHUB_TOKEN`.
+
+При push или ручном запуске workflow на ветке `main` образы публикуются в
+`ghcr.io/<владелец>/<репозиторий>-<сервис>` с тегами `latest` и
+`sha-<commit>`.
+Pull request и push в другие ветки выполняют проверки и сборку без публикации.
+Пакеты GHCR можно сделать публичными в настройках пакета; иначе кластеру для
+загрузки образов потребуется авторизация.
+
+Автоматический deploy в Kubernetes пока не настроен. Манифесты в `lab3/k8s/`
+ссылаются на локальные образы `shop/*:1.0`, а `lab3/deploy.ps1` предназначен
+для локального Minikube. Для CD потребуется доступный извне кластер, его
+учётные данные в GitHub Environment Secrets и обновление Kubernetes-манифестов
+на опубликованные GHCR-образы. Не добавляйте kubeconfig или реальные секреты в
+репозиторий.
+
 ## 2. Архитектура проекта
 
 **Микросервис** — небольшой сервис с отдельной бизнес-ответственностью и
@@ -795,8 +818,8 @@ npm run dev
 ```
 
 Для независимого запуска `.env.example` задает `VITE_API_URL=http://localhost:8000`.
-Контейнерная production-сборка использует относительный `/api`, проксируемый
-nginx в Gateway. Для production build:
+Контейнерная production-сборка оставляет Axios `baseURL` пустым: запросы с
+путями `/api/...` идут на текущий origin и проксируются nginx в Gateway. Для production build:
 
 ```powershell
 npm run build
@@ -868,9 +891,9 @@ $rng.Dispose()
 
 `CORS_ORIGINS`, `GATEWAY_UPSTREAM_TIMEOUT_SECONDS`,
 `GATEWAY_RATE_LIMIT_REQUESTS` и `GATEWAY_RATE_LIMIT_WINDOW_SECONDS` имеют
-значения по умолчанию в Compose. Контейнерный frontend направляет запросы
-относительно `/api` через nginx к Gateway; standalone frontend может использовать
-`VITE_API_URL=http://localhost:8000`.
+значения по умолчанию в Compose. Контейнерный frontend отправляет запросы
+`/api/...` на тот же origin, а nginx проксирует их к Gateway; standalone
+frontend использует `VITE_API_URL=http://localhost:8000`.
 
 ### Запуск и повседневные команды
 

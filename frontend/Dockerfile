@@ -4,7 +4,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-ENV VITE_API_URL=/api
+ENV VITE_API_URL=""
 RUN npm run build
 
 FROM nginxinc/nginx-unprivileged:alpine

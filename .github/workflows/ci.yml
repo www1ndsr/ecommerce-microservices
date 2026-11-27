@@ -1,10 +1,8 @@
-name: CI
+name: CI/CD
 
 on:
   push:
-    branches: [lab-3, main]
   pull_request:
-    branches: [lab-3, main]
   workflow_dispatch:
 
 permissions:
@@ -12,7 +10,7 @@ permissions:
 
 jobs:
   checks:
-    name: Tests and Compose validation
+    name: Tests and frontend build
     runs-on: ubuntu-latest
 
     steps:
@@ -32,6 +30,19 @@ jobs:
       - name: Run unit tests
         run: python -m pytest -q
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
       - name: Validate Docker Compose configuration
         env:
           POSTGRES_USER: ci_user
@@ -40,3 +51,83 @@ jobs:
           RABBITMQ_USER: ci_user
           RABBITMQ_PASS: ci_only_password
         run: docker compose config --quiet
+
+  images:
+    name: Build ${{ matrix.image }} image
+    needs: checks
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: auth-service
+            context: services/auth-service
+          - image: user-service
+            context: services/user-service
+          - image: product-service
+            context: services/product-service
+          - image: cart-service
+            context: services/cart-service
+          - image: order-service
+            context: services/order-service
+          - image: payment-service
+            context: services/payment-service
+          - image: notification-service
+            context: services/notification-service
+          - image: inventory-service
+            context: services/inventory-service
+          - image: review-service
+            context: services/review-service
+          - image: promotion-service
+            context: services/promotion-service
+          - image: shipping-service
+            context: services/shipping-service
+          - image: wishlist-service
+            context: services/wishlist-service
+          - image: gateway
+            context: gateway
+          - image: frontend
+            context: frontend
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare lowercase image name
+        id: image-name
+        shell: bash
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}-${{ matrix.image }}" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare image tags
+        id: metadata
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.image-name.outputs.image }}
+          tags: |
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and publish image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./${{ matrix.context }}
+          push: ${{ (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' }}
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}

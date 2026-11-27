@@ -14,9 +14,9 @@ container runtime:
 minikube start --driver=docker --cpus=4 --memory=6144
 $services = @('auth-service','user-service','product-service','cart-service','order-service','payment-service','notification-service','inventory-service','review-service','promotion-service','shipping-service','wishlist-service','gateway','frontend')
 foreach ($name in $services) {
-    if ($name -eq 'gateway' -or $name -eq 'frontend') { $context = ".\$name" }
-    else { $context = ".\services\$name" }
-    minikube image build --tag "shop/${name}:1.0" --file "$context\Dockerfile" $context
+    if ($name -eq 'gateway' -or $name -eq 'frontend') { $context = "./$name" }
+    else { $context = "./services/$name" }
+    minikube image build $context --tag "shop/${name}:1.0" --file Dockerfile
     if ($LASTEXITCODE -ne 0) { throw "Image build failed: shop/${name}:1.0" }
 }
 .\lab3\deploy.ps1
@@ -27,9 +27,13 @@ Minikube 1.39 uses containerd by default; its `docker-env` path reports
 Compose-tagged images directly into containerd, where Kubernetes can use them
 with `imagePullPolicy: IfNotPresent`.
 
-`.env` в корне должен содержать `POSTGRES_PASSWORD`, `JWT_SECRET` и
-`RABBITMQ_PASS`; скрипт создаёт из него Secret `app-secrets`, если Secret ещё не
-существует. Значения секретов не хранятся в Git. Пример формата находится в
+Перед первым запуском создайте `.env` из `.env.example`, оставьте имена
+пользователей `app` и `shop` либо задайте свои (латинские буквы, цифры и `_`,
+начиная с буквы или `_`) и заполните три пустых секрета.
+`deploy.ps1` берёт `POSTGRES_USER` и `RABBITMQ_USER` из `.env` и
+синхронизирует их с ConfigMap `app-config`; пароли и JWT-ключ попадают в Secret
+`app-secrets`, который создаётся только при отсутствии. Настоящие значения не
+хранятся в Git. Пример структуры Secret находится в
 `k8s/secrets/secret.example.yaml`.
 
 Открыть frontend:
@@ -104,11 +108,15 @@ RabbitMQ, `services/` — сетевые Service-объекты, а `deployments
 состояние Pod'ов, Service и Deployment.
 
 Перед первым запуском скопируйте `.env.example` в `.env` и задайте значения
-`POSTGRES_USER`, `POSTGRES_PASSWORD`, `JWT_SECRET`, `RABBITMQ_USER` и
-`RABBITMQ_PASS`. При первом запуске `deploy.ps1` создаёт Kubernetes Secret
-`app-secrets` из `.env`, если такого Secret ещё нет. Не добавляйте `.env` или
-`lab3/k8s/secrets/secret.yaml` в Git. Обычные настройки, включая адреса
-сервисов, хранятся в ConfigMap `app-config`.
+`POSTGRES_PASSWORD`, `JWT_SECRET` и `RABBITMQ_PASS`; в примере уже стоят
+несекретные имена пользователей `app` и `shop`. Скрипт читает их из `.env` и
+обновляет соответствующие ключи ConfigMap, поэтому Compose и Kubernetes
+используют одинаковые имена. При первом запуске `deploy.ps1` создаёт Secret
+`app-secrets` только из пароля PostgreSQL, JWT-ключа и пароля RabbitMQ; уже
+созданный Secret скрипт не перезаписывает. Не добавляйте `.env` или
+`lab3/k8s/secrets/secret.yaml` в Git. Для уже созданного кластера не меняйте
+имя пользователя или пароль базы/брокера без согласованной ротации учётных
+данных: PostgreSQL и RabbitMQ сохраняют первоначальные credentials в PVC.
 
 ### Сервисы приложения
 
@@ -204,9 +212,10 @@ Stop-Transcript
   подготовки этого тега.
 - **Сервис не Ready.** Посмотрите `kubectl describe pod` и `kubectl logs`; при
   первом старте базы и RabbitMQ могут потребовать дополнительного времени.
-- **Secret отсутствует.** Проверьте наличие `.env` с нужными ключами и повторно
-  запустите `lab3/deploy.ps1`. Если Secret уже существует, скрипт его не
-  перезаписывает: обновите Secret отдельно после проверки текущих настроек.
+- **Secret отсутствует.** Проверьте наличие `.env` с пятью непустыми ключами и
+  повторно запустите `lab3/deploy.ps1`. Если Secret уже существует, скрипт его
+  не перезаписывает. Перед изменением пароля нужно обновить credentials в самой
+  базе/брокере и Kubernetes Secret; изменение только `.env` недостаточно.
 
 Для RabbitMQ установлены отдельные ресурсы: request `250m` CPU и `128Mi`,
 limit `1` CPU и `512Mi`; timeout всех трёх probes — `20` секунд. Это даёт

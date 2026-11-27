@@ -29,9 +29,11 @@ Frontend собирается в отдельной Node.js-стадии, а г�
 
 Корневой [`docker-compose.yml`](../../docker-compose.yml) связывает сборку
 приложений с тегами `shop/<service>:1.0` и задаёт адреса зависимостей. Для
-локального Compose создайте `.env` на основе [`.env.example`](../../.env.example)
-и заполните нужные значения. `.env` не хранится в Git; не помещайте реальные
-пароли и JWT-ключи в Dockerfile, Compose-файл или Kubernetes-манифесты.
+локального Compose создайте `.env` на основе [`.env.example`](../../.env.example).
+Там заданы имена пользователей `app` и `shop`; заполните три пустых значения
+паролей/JWT. Те же имена использует Kubernetes: `lab3/deploy.ps1` переносит их
+из `.env` в ConfigMap. `.env` не хранится в Git; не помещайте реальные пароли
+и JWT-ключи в Dockerfile, Compose-файл или Kubernetes-манифесты.
 
 Compose и Minikube одновременно потребляют много памяти. Перед запуском
 Minikube остановите Compose-компоненты без удаления данных командой

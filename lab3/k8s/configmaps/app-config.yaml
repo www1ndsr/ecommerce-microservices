@@ -16,7 +16,6 @@ data:
   RATE_LIMIT_REQUESTS: "120"
   RATE_LIMIT_WINDOW_SECONDS: "60"
   CORS_ORIGINS: "http://localhost:30080,http://127.0.0.1:30080"
-  VITE_API_URL: "/api"
   REDIS_URL: "redis://cart-db:6379/0"
   MONGODB_URL: "mongodb://notification-db:27017"
   AUTH_SERVICE_URL: "http://auth-service:8000"
